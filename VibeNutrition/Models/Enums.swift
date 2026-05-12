@@ -75,7 +75,13 @@ enum UnitsPref: String, Codable, CaseIterable, Identifiable {
 enum SexType: String, Codable, CaseIterable, Identifiable {
     case male, female, other
     var id: String { rawValue }
-    var label: String { rawValue.capitalized }
+    var label: String {
+        switch self {
+        case .male: return "Male"
+        case .female: return "Female"
+        case .other: return "Prefer not to say"
+        }
+    }
 }
 
 enum NotificationPref: String, Codable, CaseIterable, Identifiable {
