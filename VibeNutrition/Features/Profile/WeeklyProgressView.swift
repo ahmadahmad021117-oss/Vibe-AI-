@@ -5,6 +5,8 @@ struct WeeklyProgressView: View {
     @State private var summary: WeeklyProgressService.Summary?
     @State private var loading = true
     @State private var error: String?
+    @State private var recalibrating = false
+    @State private var recalibrateError: String?
 
     var body: some View {
         ZStack {
@@ -115,10 +117,24 @@ struct WeeklyProgressView: View {
             Text("Your actual progress is off from what your plan expected. Tap to regenerate with updated weight.")
                 .font(Theme.Type.body)
                 .foregroundStyle(Theme.Palette.textMuted)
-            PrimaryButton(title: "Recalibrate plan") {
-                // The plan-generation flow re-runs and writes a fresh targets row.
-                // Wiring lives in RootCoordinator; we just dismiss here.
-                dismiss()
+            if recalibrating {
+                HStack(spacing: Theme.Spacing.sm) {
+                    ProgressView().tint(Theme.Palette.accent)
+                    Text("Recalibrating…")
+                        .font(Theme.Type.body)
+                        .foregroundStyle(Theme.Palette.textMuted)
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.vertical, 6)
+            } else {
+                PrimaryButton(title: "Recalibrate plan") {
+                    Task { await recalibrate() }
+                }
+            }
+            if let recalibrateError {
+                Text(recalibrateError)
+                    .font(Theme.Type.caption)
+                    .foregroundStyle(Theme.Palette.danger)
             }
         }
         .padding(Theme.Spacing.md)
@@ -130,6 +146,22 @@ struct WeeklyProgressView: View {
                         .fill(Theme.Palette.surface)
                 )
         )
+    }
+
+    private func recalibrate() async {
+        recalibrating = true
+        recalibrateError = nil
+        defer { recalibrating = false }
+
+        let generator = PlanGenerator()
+        await generator.run()
+        if generator.stage == .ready {
+            Haptics.success()
+            dismiss()
+        } else {
+            Haptics.error()
+            recalibrateError = generator.errorMessage ?? "Couldn't recalibrate. Try again."
+        }
     }
 
     private func statRow(_ label: String, value: String) -> some View {

@@ -43,7 +43,9 @@ struct DashboardView: View {
             WeightCheckInSheet { showingWeightCheckIn = false }
         }
         .sheet(isPresented: $showingProfile) { ProfileView() }
-        .sheet(isPresented: $showingWeekly) { WeeklyProgressView() }
+        .sheet(isPresented: $showingWeekly, onDismiss: { Task { await vm.load() } }) {
+            WeeklyProgressView()
+        }
         .preferredColorScheme(.dark)
     }
 
