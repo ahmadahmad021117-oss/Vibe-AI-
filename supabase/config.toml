@@ -1,0 +1,10 @@
+# Supabase local + deploy config.
+# Run `supabase link --project-ref YOUR_REF` first; then `supabase functions deploy`.
+
+project_id = "vibe-nutrition"
+
+[functions.analyze-food]
+verify_jwt = true
+
+[functions.suggest-meals]
+verify_jwt = true

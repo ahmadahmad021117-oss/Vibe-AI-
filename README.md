@@ -4,7 +4,8 @@ An AI-powered calorie & macro coach for fitness-focused users (16–25). Native 
 
 > **Phase 1 status:** scaffold + onboarding flow ✅
 > **Phase 2 status:** TDEE engine + plan generation + plan preview ✅
-> Food scan, paywall, dashboard, and compliance polish land in Phases 3–6.
+> **Phase 3 status:** food scan + OpenAI Vision edge function + meal suggestions ✅
+> Dashboard, paywall, and compliance polish land in Phases 4–6.
 
 ---
 
@@ -27,7 +28,13 @@ VibeNutrition/
     Auth/             # sign-in gate
     Onboarding/       # state, card, 12 screens, coordinator
     Plan/             # NutritionEngine, PlanGenerator, generation + preview screens
-    # Scan/, Paywall/, Dashboard/, Profile/ land later
+    Scan/             # camera, scan-flow coordinator, review, meal suggestions
+    # Paywall/, Dashboard/, Profile/ land later
+supabase/
+  config.toml
+  functions/
+    analyze-food/     # OpenAI Vision -> validated JSON
+    suggest-meals/    # remaining macros + diet pref -> 3 ideas
   Models/             # Codable types mirroring the Postgres schema
   Resources/          # Secrets.plist, asset catalogs
   Services/           # Supabase, Auth, Profile, Goal
@@ -114,6 +121,16 @@ xcodebuild test -scheme VibeNutrition -destination 'platform=iOS Simulator,name=
 - [x] Top progress bar, haptics, slide transitions
 - [x] Dark-mode-only theme with neon accent gradient
 
+## Deploying edge functions
+
+```bash
+supabase secrets set OPENAI_API_KEY=sk-...
+supabase functions deploy analyze-food
+supabase functions deploy suggest-meals
+```
+
+Both functions verify the user JWT and enforce that the uploaded image path begins with `<user_id>/`, so a logged-in user cannot trigger analysis against another user's storage object.
+
 ## Phase 2 acceptance criteria
 
 - [x] Pure `NutritionEngine` functions (no IO, fully unit-testable)
@@ -126,9 +143,20 @@ xcodebuild test -scheme VibeNutrition -destination 'platform=iOS Simulator,name=
 - [x] Plan preview shows kcal ring, macro split, weekly projection, computation breakdown
 - [x] Plan preview shown **before** any paywall
 
+## Phase 3 acceptance criteria
+
+- [x] `analyze-food` edge function: JWT-verified, path-ownership-checked, Zod-validated, retries once on bad model output
+- [x] `suggest-meals` edge function: returns exactly 3 ideas matched to remaining macros + diet pref
+- [x] OpenAI key lives in Supabase secrets, never in app bundle
+- [x] `CameraScreen` uses AVFoundation with PhotosPicker fallback when permission denied
+- [x] `FoodScanService.analyze` uploads to per-user storage folder, invokes function, parses
+- [x] `ScanReviewView` lets user adjust grams; macros recompute live and proportionally
+- [x] Confirm writes to `food_logs` with `source = scan`
+- [x] Free tier capped at 3 scans/day (counted from `food_logs` where `source = scan`)
+- [x] `MealSuggestionsSheet` shown after save if user opted in
+
 ## Coming next
 
-- **Phase 3:** Food scan via OpenAI Vision edge function
 - **Phase 4:** Daily dashboard (kcal ring, macro bars, streak)
 - **Phase 5:** RevenueCat paywall (slots between plan preview and main)
 - **Phase 6:** Profile, compliance (delete account, data export), notifications, weekly reports
