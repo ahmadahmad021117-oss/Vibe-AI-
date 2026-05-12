@@ -91,15 +91,14 @@ final class PlanGenerator {
         SexType, Int, Double, Double, Int, GoalType, MainFocus?, Bool
     ) {
         // Fresh-from-onboarding path: every required answer is in memory.
-        // Sex is not collected in the 12-question flow yet; default to .male so BMR stays finite.
-        // A future Profile/Sex screen will replace this default.
         if let o = onboarding,
            let weight = o.currentWeightKg,
            let age = o.age,
+           let sex = o.sex,
            let height = o.heightCm,
            let days = o.trainingDaysPerWeek,
            let goal = o.goal {
-            return (.male, age, height, weight, days, goal, o.mainFocus, o.healthSyncEnabled)
+            return (sex, age, height, weight, days, goal, o.mainFocus, o.healthSyncEnabled)
         }
 
         // Returning-user path: hydrate from Supabase.
@@ -109,6 +108,7 @@ final class PlanGenerator {
         guard
             let profile,
             let age = profile.age,
+            let sex = profile.sex,
             let height = profile.heightCm,
             let days = profile.trainingDaysPerWeek,
             let latestGoal
@@ -123,7 +123,7 @@ final class PlanGenerator {
         let weight = latestGoal.startWeightKg
 
         return (
-            profile.sex ?? .male,
+            sex,
             age,
             height,
             weight,

@@ -105,6 +105,8 @@ Hit ⌘R in Xcode. The app shows splash → auth → onboarding → placeholder 
 xcodebuild test -scheme VibeNutrition -destination 'platform=iOS Simulator,name=iPhone 15'
 ```
 
+CI runs the same on every push via `.github/workflows/ios.yml` (macOS 14 runner, Xcode 15.4, code signing disabled).
+
 `OnboardingStateTests` covers:
 - initial step + advancement
 - persist / restore roundtrip
@@ -207,6 +209,5 @@ supabase functions deploy weekly-progress
 - App Store Connect listing + screenshots + marketing copy
 - RevenueCat dashboard: create offering with monthly + yearly packages, configure webhook URL + shared secret
 - Privacy policy and terms hosted at the URLs referenced in `ProfileView`
-- Asset catalog: app icon, splash, launch screen
-- Add a Sex collection step to onboarding (currently defaults to `.male` in BMR)
-- EAS/Fastlane build + automated deploy pipeline
+- Real app icon PNGs in `Assets.xcassets/AppIcon.appiconset/` (scaffolding committed)
+- Fastlane / EAS deploy pipeline beyond the GitHub Actions build+test workflow

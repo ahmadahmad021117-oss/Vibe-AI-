@@ -12,6 +12,7 @@ final class OnboardingState: Codable {
     var currentWeightKg: Double?
     var goalWeightKg: Double?
     var age: Int?
+    var sex: SexType?
     var heightCm: Double?
     var healthSyncEnabled: Bool = false
     var trainingDaysPerWeek: Int?
@@ -26,7 +27,7 @@ final class OnboardingState: Codable {
 
     // MARK: - Codable (manual, because Observation property wrappers don't auto-synthesize)
     enum CodingKeys: String, CodingKey {
-        case goal, unitsPref, currentWeightKg, goalWeightKg, age, heightCm,
+        case goal, unitsPref, currentWeightKg, goalWeightKg, age, sex, heightCm,
              healthSyncEnabled, trainingDaysPerWeek, mainFocus, mealsPerDay,
              dietaryPref, mealSuggestionsEnabled, notificationPref, step
     }
@@ -40,6 +41,7 @@ final class OnboardingState: Codable {
         currentWeightKg = try c.decodeIfPresent(Double.self, forKey: .currentWeightKg)
         goalWeightKg = try c.decodeIfPresent(Double.self, forKey: .goalWeightKg)
         age = try c.decodeIfPresent(Int.self, forKey: .age)
+        sex = try c.decodeIfPresent(SexType.self, forKey: .sex)
         heightCm = try c.decodeIfPresent(Double.self, forKey: .heightCm)
         healthSyncEnabled = try c.decodeIfPresent(Bool.self, forKey: .healthSyncEnabled) ?? false
         trainingDaysPerWeek = try c.decodeIfPresent(Int.self, forKey: .trainingDaysPerWeek)
@@ -58,6 +60,7 @@ final class OnboardingState: Codable {
         try c.encodeIfPresent(currentWeightKg, forKey: .currentWeightKg)
         try c.encodeIfPresent(goalWeightKg, forKey: .goalWeightKg)
         try c.encodeIfPresent(age, forKey: .age)
+        try c.encodeIfPresent(sex, forKey: .sex)
         try c.encodeIfPresent(heightCm, forKey: .heightCm)
         try c.encode(healthSyncEnabled, forKey: .healthSyncEnabled)
         try c.encodeIfPresent(trainingDaysPerWeek, forKey: .trainingDaysPerWeek)
@@ -82,6 +85,7 @@ final class OnboardingState: Codable {
         case .currentWeight: return currentWeightKg != nil
         case .goalWeight: return goalWeightKg != nil
         case .age: return age != nil
+        case .sex: return sex != nil
         case .height: return heightCm != nil
         case .healthSync: return true
         case .trainingDays: return trainingDaysPerWeek != nil
@@ -136,7 +140,7 @@ final class OnboardingState: Codable {
     func commit() async {
         let patch = ProfilePatch(
             age: age,
-            sex: nil,
+            sex: sex,
             heightCm: heightCm,
             dietaryPref: dietaryPref,
             unitsPref: unitsPref,

@@ -5,6 +5,7 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
     case currentWeight
     case goalWeight
     case age
+    case sex
     case height
     case healthSync
     case trainingDays
