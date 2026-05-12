@@ -6,7 +6,8 @@ An AI-powered calorie & macro coach for fitness-focused users (16–25). Native 
 > **Phase 2 status:** TDEE engine + plan generation + plan preview ✅
 > **Phase 3 status:** food scan + OpenAI Vision edge function + meal suggestions ✅
 > **Phase 4 status:** daily dashboard + manual entry + weight check-in + streak ✅
-> Paywall and compliance polish land in Phases 5–6.
+> **Phase 5 status:** RevenueCat paywall + entitlement sync webhook ✅
+> Compliance polish lands in Phase 6.
 
 ---
 
@@ -31,12 +32,14 @@ VibeNutrition/
     Plan/             # NutritionEngine, PlanGenerator, generation + preview screens
     Scan/             # camera, scan-flow coordinator, review, meal suggestions
     Dashboard/        # ring + macro bars, manual entry, weight check-in
-    # Paywall/, Profile/ land later
+    Paywall/          # RevenueCat-powered paywall
+    # Profile/ lands in Phase 6
 supabase/
   config.toml
   functions/
-    analyze-food/     # OpenAI Vision -> validated JSON
-    suggest-meals/    # remaining macros + diet pref -> 3 ideas
+    analyze-food/         # OpenAI Vision -> validated JSON
+    suggest-meals/        # remaining macros + diet pref -> 3 ideas
+    revenuecat-webhook/   # syncs RC events into entitlements table
   Models/             # Codable types mirroring the Postgres schema
   Resources/          # Secrets.plist, asset catalogs
   Services/           # Supabase, Auth, Profile, Goal
@@ -127,11 +130,14 @@ xcodebuild test -scheme VibeNutrition -destination 'platform=iOS Simulator,name=
 
 ```bash
 supabase secrets set OPENAI_API_KEY=sk-...
+supabase secrets set REVENUECAT_WEBHOOK_SECRET=<random-shared-secret>
 supabase functions deploy analyze-food
 supabase functions deploy suggest-meals
+supabase functions deploy revenuecat-webhook --no-verify-jwt
 ```
 
-Both functions verify the user JWT and enforce that the uploaded image path begins with `<user_id>/`, so a logged-in user cannot trigger analysis against another user's storage object.
+- `analyze-food` and `suggest-meals` verify the user JWT and enforce that the uploaded image path begins with `<user_id>/`, so a logged-in user cannot trigger analysis against another user's storage object.
+- `revenuecat-webhook` is JWT-less (RevenueCat doesn't send a Supabase token) and instead authenticates with a shared secret in the `Authorization: Bearer …` header. Set the same secret in RevenueCat's webhook config. Only events whose `app_user_id` is a valid UUID are accepted, matching the Supabase user ID we log in to RC with.
 
 ## Phase 2 acceptance criteria
 
@@ -168,7 +174,15 @@ Both functions verify the user JWT and enforce that the uploaded image path begi
 - [x] `StreakService` counts consecutive days with at least one log
 - [x] Empty state when no logs today
 
+## Phase 5 acceptance criteria
+
+- [x] `PurchaseService` wraps RevenueCat (configure, login as Supabase user, offerings, purchase, restore)
+- [x] `PaywallView` shows feature list, monthly + yearly packages (yearly highlighted as Best value), restore button, "Not now" escape hatch
+- [x] Slots between plan preview and main — never before plan preview
+- [x] `revenuecat-webhook` edge function upserts `entitlements` row, shared-secret authenticated, rejects non-UUID app_user_ids
+- [x] `EntitlementService.refresh()` is called after each purchase/restore
+- [x] Free-tier scan cap remains enforced via the entitlements row
+
 ## Coming next
 
-- **Phase 5:** RevenueCat paywall (slots between plan preview and main)
 - **Phase 6:** Profile, compliance (delete account, data export), notifications, weekly reports

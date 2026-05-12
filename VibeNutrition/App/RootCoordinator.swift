@@ -6,12 +6,14 @@ enum RootDestination: Equatable {
     case onboarding
     case planGeneration
     case planPreview(NutritionEngine.Result, NutritionEngine.Inputs)
+    case paywall
     case main
 }
 
 struct RootCoordinator: View {
     @State private var destination: RootDestination = .splash
     @State private var auth = AuthService.shared
+    @State private var entitlements = EntitlementService.shared
     @State private var onboardingState: OnboardingState?
 
     var body: some View {
@@ -45,11 +47,23 @@ struct RootCoordinator: View {
 
             case let .planPreview(result, inputs):
                 PlanPreviewView(result: result, inputs: inputs) {
-                    withAnimation(.easeInOut(duration: Theme.Motion.base)) {
-                        // Paywall will slot in here once Phase 5 lands.
-                        destination = .main
-                    }
+                    Task { await advanceFromPreview() }
                 }
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+
+            case .paywall:
+                PaywallView(
+                    onUnlocked: {
+                        withAnimation(.easeInOut(duration: Theme.Motion.base)) {
+                            destination = .main
+                        }
+                    },
+                    onSkip: {
+                        withAnimation(.easeInOut(duration: Theme.Motion.base)) {
+                            destination = .main
+                        }
+                    }
+                )
                 .transition(.move(edge: .trailing).combined(with: .opacity))
 
             case .main:
@@ -70,16 +84,24 @@ struct RootCoordinator: View {
             destination = .auth
             return
         }
+        await PurchaseService.shared.loginIfNeeded()
+        await entitlements.refresh()
         do {
             let profile = try await ProfileService.shared.fetchCurrent()
             if profile?.onboardingCompletedAt != nil {
-                // Returning user: skip straight to main (we'll fetch their last target there in Phase 4).
                 destination = .main
             } else {
                 destination = .onboarding
             }
         } catch {
             destination = .onboarding
+        }
+    }
+
+    private func advanceFromPreview() async {
+        await entitlements.refresh()
+        withAnimation(.easeInOut(duration: Theme.Motion.base)) {
+            destination = entitlements.isPremium ? .main : .paywall
         }
     }
 }

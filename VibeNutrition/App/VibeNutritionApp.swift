@@ -6,6 +6,7 @@ struct VibeNutritionApp: App {
         // Touch shared singletons so Supabase + auth bootstrap eagerly.
         _ = SupabaseService.shared
         _ = AuthService.shared
+        PurchaseService.shared.configure()
     }
 
     var body: some Scene {
