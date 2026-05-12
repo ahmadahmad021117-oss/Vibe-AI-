@@ -100,6 +100,8 @@ struct PaywallView: View {
     private func packageRow(_ pkg: Package) -> some View {
         let isSelected = pkg.identifier == selectedPackage?.identifier
         let isAnnual = pkg.packageType == .annual
+        let title = pkg.storeProduct.localizedTitle.isEmpty ? defaultTitle(for: pkg) : pkg.storeProduct.localizedTitle
+        let price = pkg.storeProduct.localizedPriceString
         return Button {
             Haptics.select()
             selectedPackage = pkg
@@ -107,7 +109,7 @@ struct PaywallView: View {
             HStack(spacing: Theme.Spacing.md) {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
-                        Text(pkg.storeProduct.localizedTitle.isEmpty ? defaultTitle(for: pkg) : pkg.storeProduct.localizedTitle)
+                        Text(title)
                             .font(Theme.Type.bodyBold)
                             .foregroundStyle(Theme.Palette.text)
                         if isAnnual {
@@ -118,7 +120,7 @@ struct PaywallView: View {
                                 .background(Theme.Palette.accentAlt, in: Capsule())
                         }
                     }
-                    Text(pkg.storeProduct.localizedPriceString)
+                    Text(price)
                         .font(Theme.Type.caption)
                         .foregroundStyle(Theme.Palette.textMuted)
                 }
@@ -138,6 +140,8 @@ struct PaywallView: View {
                             lineWidth: isSelected ? 1.5 : 1)
             )
         }
+        .accessibilityLabel("\(title), \(price)\(isAnnual ? ", best value" : "")")
+        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
 
     private func defaultTitle(for pkg: Package) -> String {

@@ -52,6 +52,7 @@ struct CameraScreen: View {
                     .frame(width: 40, height: 40)
                     .background(.black.opacity(0.4), in: Circle())
             }
+            .accessibilityLabel("Close camera")
             Spacer()
         }
         .padding(.horizontal, Theme.Spacing.lg)
@@ -67,6 +68,7 @@ struct CameraScreen: View {
                     .frame(width: 56, height: 56)
                     .background(.black.opacity(0.4), in: Circle())
             }
+            .accessibilityLabel("Pick from photo library")
 
             Button {
                 Haptics.tapHeavy()
@@ -81,6 +83,7 @@ struct CameraScreen: View {
                         .frame(width: 68, height: 68)
                 }
             }
+            .accessibilityLabel("Take photo")
 
             Color.clear.frame(width: 56, height: 56)
         }

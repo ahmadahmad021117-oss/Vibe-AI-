@@ -58,10 +58,13 @@ struct OnboardingCard<Content: View>: View {
                         .frame(width: 36, height: 36)
                         .background(Theme.Palette.surface, in: Circle())
                 }
+                .accessibilityLabel("Back")
             } else {
                 Color.clear.frame(width: 36, height: 36)
             }
             OnboardingProgressBar(progress: progress)
+                .accessibilityLabel("Onboarding progress")
+                .accessibilityValue("\(Int(progress * 100)) percent")
             Color.clear.frame(width: 36, height: 36)
         }
         .padding(.horizontal, Theme.Spacing.lg)

@@ -28,6 +28,8 @@ struct PrimaryButton: View {
                 .opacity(isEnabled ? 1 : 0.6)
         }
         .disabled(!isEnabled)
+        .accessibilityLabel(title)
+        .accessibilityHint(isEnabled ? "" : "Disabled")
     }
 }
 

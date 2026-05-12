@@ -10,7 +10,6 @@ final class StreakService {
     /// Today counts toward the streak only if at least one log exists today.
     func currentStreak() async throws -> Int {
         guard let userId = AuthService.shared.userId else { return 0 }
-        // Pull last ~45 days of log timestamps once; compute locally.
         guard let cutoff = Calendar.current.date(byAdding: .day, value: -45, to: Date()) else { return 0 }
         let iso = ISO8601DateFormatter().string(from: cutoff)
 
@@ -23,14 +22,18 @@ final class StreakService {
             .execute()
             .value
 
-        let cal = Calendar.current
-        let loggedDays: Set<Date> = Set(rows.map { cal.startOfDay(for: $0.logged_at) })
+        return Self.computeStreak(loggedAt: rows.map { $0.logged_at }, now: Date(), calendar: .current)
+    }
 
+    /// Pure helper, exposed for testing.
+    /// Counts consecutive days back from `now` that appear in the input timestamps.
+    static func computeStreak(loggedAt: [Date], now: Date, calendar: Calendar) -> Int {
+        let loggedDays = Set(loggedAt.map { calendar.startOfDay(for: $0) })
         var streak = 0
-        var cursor = cal.startOfDay(for: Date())
+        var cursor = calendar.startOfDay(for: now)
         while loggedDays.contains(cursor) {
             streak += 1
-            guard let prev = cal.date(byAdding: .day, value: -1, to: cursor) else { break }
+            guard let prev = calendar.date(byAdding: .day, value: -1, to: cursor) else { break }
             cursor = prev
         }
         return streak

@@ -51,5 +51,8 @@ struct OptionCard: View {
             )
         }
         .animation(Theme.Motion.spring, value: isSelected)
+        .accessibilityLabel(title)
+        .accessibilityValue(subtitle ?? "")
+        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
 }

@@ -89,6 +89,7 @@ struct DashboardView: View {
             .padding(.vertical, 6)
             .background(Theme.Palette.surface, in: Capsule())
         }
+        .accessibilityLabel("\(vm.streak) day streak. Tap to view weekly progress.")
     }
 
     private var ringCard: some View {
@@ -117,7 +118,15 @@ struct DashboardView: View {
                 }
             }
             .frame(width: 240, height: 240)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Calories remaining")
+            .accessibilityValue(ringAccessibilityValue)
         }
+    }
+
+    private var ringAccessibilityValue: String {
+        guard let t = vm.target else { return "\(vm.kcalRemaining) kilocalories left" }
+        return "\(vm.kcalRemaining) of \(t.kcal) kilocalories left"
     }
 
     private var macroBars: some View {
@@ -156,6 +165,9 @@ struct DashboardView: View {
             }
             .frame(height: 8)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label)
+        .accessibilityValue("\(Int(consumed.rounded())) of \(Int(target.rounded())) grams")
     }
 
     private var actionsRow: some View {
@@ -188,6 +200,7 @@ struct DashboardView: View {
             .frame(maxWidth: .infinity, minHeight: 70)
             .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))
         }
+        .accessibilityLabel(title)
     }
 
     private var todaySection: some View {

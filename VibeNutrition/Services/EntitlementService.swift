@@ -13,11 +13,14 @@ final class EntitlementService {
     static let freeDailyScanLimit = 3
 
     var isPremium: Bool {
-        if tier == .premium {
-            if let expiresAt { return expiresAt > Date() }
-            return true
-        }
-        return false
+        Self.isPremium(tier: tier, expiresAt: expiresAt, now: Date())
+    }
+
+    /// Pure helper, exposed for testing.
+    static func isPremium(tier: EntitlementTier, expiresAt: Date?, now: Date) -> Bool {
+        guard tier == .premium else { return false }
+        guard let expiresAt else { return true }   // lifetime / non-expiring
+        return expiresAt > now
     }
 
     func refresh() async {
