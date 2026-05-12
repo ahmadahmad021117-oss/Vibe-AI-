@@ -5,7 +5,8 @@ An AI-powered calorie & macro coach for fitness-focused users (16–25). Native 
 > **Phase 1 status:** scaffold + onboarding flow ✅
 > **Phase 2 status:** TDEE engine + plan generation + plan preview ✅
 > **Phase 3 status:** food scan + OpenAI Vision edge function + meal suggestions ✅
-> Dashboard, paywall, and compliance polish land in Phases 4–6.
+> **Phase 4 status:** daily dashboard + manual entry + weight check-in + streak ✅
+> Paywall and compliance polish land in Phases 5–6.
 
 ---
 
@@ -29,7 +30,8 @@ VibeNutrition/
     Onboarding/       # state, card, 12 screens, coordinator
     Plan/             # NutritionEngine, PlanGenerator, generation + preview screens
     Scan/             # camera, scan-flow coordinator, review, meal suggestions
-    # Paywall/, Dashboard/, Profile/ land later
+    Dashboard/        # ring + macro bars, manual entry, weight check-in
+    # Paywall/, Profile/ land later
 supabase/
   config.toml
   functions/
@@ -155,8 +157,18 @@ Both functions verify the user JWT and enforce that the uploaded image path begi
 - [x] Free tier capped at 3 scans/day (counted from `food_logs` where `source = scan`)
 - [x] `MealSuggestionsSheet` shown after save if user opted in
 
+## Phase 4 acceptance criteria
+
+- [x] `DashboardView` shows kcal-remaining ring + macro bars + today's log list + streak pill
+- [x] `DashboardViewModel` loads target, today's logs, and current streak in parallel
+- [x] Pull-to-refresh re-syncs the day
+- [x] Manual food entry (name, grams, kcal, P/C/F)
+- [x] Weight check-in with slider, pre-fills last logged weight
+- [x] Swipe-to-delete on log rows
+- [x] `StreakService` counts consecutive days with at least one log
+- [x] Empty state when no logs today
+
 ## Coming next
 
-- **Phase 4:** Daily dashboard (kcal ring, macro bars, streak)
 - **Phase 5:** RevenueCat paywall (slots between plan preview and main)
 - **Phase 6:** Profile, compliance (delete account, data export), notifications, weekly reports
