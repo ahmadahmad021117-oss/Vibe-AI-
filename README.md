@@ -103,6 +103,21 @@ Hit ⌘R in Xcode. The app shows splash → auth → onboarding → placeholder 
 
 `Configuration/Vibe.storekit` is wired into the Debug run/test scheme, so the simulator hits a local StoreKit sandbox instead of real Apple servers. Product IDs (`com.vibe.nutrition.premium.monthly`, `com.vibe.nutrition.premium.yearly`) and display prices in the file are placeholders — adjust them to match what you configure in the RevenueCat dashboard. The Xcode StoreKit transaction manager lets you simulate purchases, refunds, and renewal failures without a sandbox Apple ID.
 
+### 8. TestFlight uploads (Fastlane)
+
+```bash
+bundle install
+bundle exec fastlane beta
+```
+
+Required env (App Store Connect API key — generate in App Store Connect → Users and Access → Integrations):
+
+- `APP_STORE_CONNECT_API_KEY_KEY_ID`
+- `APP_STORE_CONNECT_API_KEY_ISSUER_ID`
+- `APP_STORE_CONNECT_API_KEY_KEY` — base64-encoded contents of the `.p8` file (`base64 -i AuthKey_XXXX.p8 | pbcopy`)
+
+Optional: `BUILD_NUMBER` (default: minute-precision timestamp), `BETA_CHANGELOG` (default: "Internal build."). Requires `DEVELOPMENT_TEAM` to be set in `project.yml` first.
+
 ## Tests
 
 ```bash
