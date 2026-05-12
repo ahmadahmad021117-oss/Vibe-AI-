@@ -99,6 +99,10 @@ The migrations create 7 tables (`profiles`, `goals`, `weight_logs`, `targets`, `
 
 Hit ⌘R in Xcode. The app shows splash → auth → onboarding → placeholder main view.
 
+### 7. Paywall sandbox testing (optional)
+
+`Configuration/Vibe.storekit` is wired into the Debug run/test scheme, so the simulator hits a local StoreKit sandbox instead of real Apple servers. Product IDs (`com.vibe.nutrition.premium.monthly`, `com.vibe.nutrition.premium.yearly`) and display prices in the file are placeholders — adjust them to match what you configure in the RevenueCat dashboard. The Xcode StoreKit transaction manager lets you simulate purchases, refunds, and renewal failures without a sandbox Apple ID.
+
 ## Tests
 
 ```bash
