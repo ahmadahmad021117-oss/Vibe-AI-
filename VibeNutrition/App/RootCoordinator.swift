@@ -88,6 +88,9 @@ struct RootCoordinator: View {
         await entitlements.refresh()
         do {
             let profile = try await ProfileService.shared.fetchCurrent()
+            if let profile {
+                await NotificationService.shared.apply(pref: profile.notificationPref)
+            }
             if profile?.onboardingCompletedAt != nil {
                 destination = .main
             } else {

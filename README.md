@@ -7,7 +7,9 @@ An AI-powered calorie & macro coach for fitness-focused users (16–25). Native 
 > **Phase 3 status:** food scan + OpenAI Vision edge function + meal suggestions ✅
 > **Phase 4 status:** daily dashboard + manual entry + weight check-in + streak ✅
 > **Phase 5 status:** RevenueCat paywall + entitlement sync webhook ✅
-> Compliance polish lands in Phase 6.
+> **Phase 6 status:** profile + account deletion + data export + notifications + weekly progress + adaptive nudge ✅
+>
+> All six phases shipped. Remaining work to ship to TestFlight: real Supabase project + keys, App Store assets, EAS/Fastlane build pipeline.
 
 ---
 
@@ -33,13 +35,15 @@ VibeNutrition/
     Scan/             # camera, scan-flow coordinator, review, meal suggestions
     Dashboard/        # ring + macro bars, manual entry, weight check-in
     Paywall/          # RevenueCat-powered paywall
-    # Profile/ lands in Phase 6
+    Profile/          # profile, weekly progress, account deletion, data export
 supabase/
   config.toml
   functions/
     analyze-food/         # OpenAI Vision -> validated JSON
     suggest-meals/        # remaining macros + diet pref -> 3 ideas
     revenuecat-webhook/   # syncs RC events into entitlements table
+    delete-account/       # purges all user data + storage + auth row
+    weekly-progress/      # last 7 days vs target + adaptive nudge flag
   Models/             # Codable types mirroring the Postgres schema
   Resources/          # Secrets.plist, asset catalogs
   Services/           # Supabase, Auth, Profile, Goal
@@ -134,6 +138,8 @@ supabase secrets set REVENUECAT_WEBHOOK_SECRET=<random-shared-secret>
 supabase functions deploy analyze-food
 supabase functions deploy suggest-meals
 supabase functions deploy revenuecat-webhook --no-verify-jwt
+supabase functions deploy delete-account
+supabase functions deploy weekly-progress
 ```
 
 - `analyze-food` and `suggest-meals` verify the user JWT and enforce that the uploaded image path begins with `<user_id>/`, so a logged-in user cannot trigger analysis against another user's storage object.
@@ -183,6 +189,24 @@ supabase functions deploy revenuecat-webhook --no-verify-jwt
 - [x] `EntitlementService.refresh()` is called after each purchase/restore
 - [x] Free-tier scan cap remains enforced via the entitlements row
 
-## Coming next
+## Phase 6 acceptance criteria
 
-- **Phase 6:** Profile, compliance (delete account, data export), notifications, weekly reports
+- [x] `ProfileView` with account, subscription, notifications, data, legal, danger sections
+- [x] Delete account confirmation alert → `delete-account` edge function purges all rows + storage objects + auth user (App Store §5.1.1(v) compliance)
+- [x] Data export builds a sorted, ISO-8601-dated JSON dump and presents `UIActivityViewController`
+- [x] `NotificationService` schedules daily reminder + weekly summary based on user pref
+- [x] Subscription management deep-links to App Store > Subscriptions
+- [x] `WeeklyProgressView` shows adherence, weight delta vs expected, adaptive recalibrate nudge when deviation > 0.3 kg
+- [x] Tapping streak pill opens weekly progress
+- [x] No fake testimonials, no fabricated counters anywhere
+
+## What's left before TestFlight
+
+- Real Supabase project + keys (replace `Secrets.plist` placeholders)
+- Apple Developer team ID in `project.yml` `DEVELOPMENT_TEAM`
+- App Store Connect listing + screenshots + marketing copy
+- RevenueCat dashboard: create offering with monthly + yearly packages, configure webhook URL + shared secret
+- Privacy policy and terms hosted at the URLs referenced in `ProfileView`
+- Asset catalog: app icon, splash, launch screen
+- Add a Sex collection step to onboarding (currently defaults to `.male` in BMR)
+- EAS/Fastlane build + automated deploy pipeline

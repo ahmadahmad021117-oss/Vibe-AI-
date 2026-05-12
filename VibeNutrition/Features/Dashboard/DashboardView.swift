@@ -6,6 +6,7 @@ struct DashboardView: View {
     @State private var showingManualEntry = false
     @State private var showingWeightCheckIn = false
     @State private var showingProfile = false
+    @State private var showingWeekly = false
 
     var body: some View {
         ZStack {
@@ -41,10 +42,8 @@ struct DashboardView: View {
         .sheet(isPresented: $showingWeightCheckIn) {
             WeightCheckInSheet { showingWeightCheckIn = false }
         }
-        .sheet(isPresented: $showingProfile) {
-            // Profile screen lands in Phase 6; for now a quick sign-out access.
-            ProfileShortcutSheet()
-        }
+        .sheet(isPresented: $showingProfile) { ProfileView() }
+        .sheet(isPresented: $showingWeekly) { WeeklyProgressView() }
         .preferredColorScheme(.dark)
     }
 
@@ -74,17 +73,22 @@ struct DashboardView: View {
     }
 
     private var streakPill: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "flame.fill")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Theme.Palette.warning)
-            Text("\(vm.streak)")
-                .font(Theme.Type.bodyBold)
-                .foregroundStyle(Theme.Palette.text)
+        Button {
+            Haptics.tapLight()
+            showingWeekly = true
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Theme.Palette.warning)
+                Text("\(vm.streak)")
+                    .font(Theme.Type.bodyBold)
+                    .foregroundStyle(Theme.Palette.text)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Theme.Palette.surface, in: Capsule())
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(Theme.Palette.surface, in: Capsule())
     }
 
     private var ringCard: some View {
@@ -290,28 +294,3 @@ private struct LogRow: View {
     }
 }
 
-private struct ProfileShortcutSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    var body: some View {
-        ZStack {
-            Theme.Palette.bg.ignoresSafeArea()
-            VStack(spacing: Theme.Spacing.md) {
-                Text("Profile")
-                    .font(Theme.Type.h2)
-                    .foregroundStyle(Theme.Palette.text)
-                Text("Full profile lands in Phase 6.")
-                    .font(Theme.Type.body)
-                    .foregroundStyle(Theme.Palette.textMuted)
-                Spacer()
-                SecondaryButton(title: "Sign out") {
-                    Task {
-                        try? await AuthService.shared.signOut()
-                        dismiss()
-                    }
-                }
-                PrimaryButton(title: "Close") { dismiss() }
-            }
-            .padding(Theme.Spacing.lg)
-        }
-    }
-}
