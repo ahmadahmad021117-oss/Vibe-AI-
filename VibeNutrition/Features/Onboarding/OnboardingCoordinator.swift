@@ -2,7 +2,7 @@ import SwiftUI
 
 struct OnboardingCoordinator: View {
     @State private var state = OnboardingState.restore()
-    let onComplete: () -> Void
+    let onComplete: (OnboardingState) -> Void
 
     var body: some View {
         ZStack {
@@ -30,7 +30,7 @@ struct OnboardingCoordinator: View {
         .animation(.easeInOut(duration: Theme.Motion.base), value: state.step)
         .onChange(of: state.step) { _, new in
             if new == .done {
-                onComplete()
+                onComplete(state)
             }
         }
         .preferredColorScheme(.dark)

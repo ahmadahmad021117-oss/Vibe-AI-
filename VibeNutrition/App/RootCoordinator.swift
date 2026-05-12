@@ -1,15 +1,18 @@
 import SwiftUI
 
-enum RootDestination {
+enum RootDestination: Equatable {
     case splash
     case auth
     case onboarding
+    case planGeneration
+    case planPreview(NutritionEngine.Result, NutritionEngine.Inputs)
     case main
 }
 
 struct RootCoordinator: View {
     @State private var destination: RootDestination = .splash
     @State private var auth = AuthService.shared
+    @State private var onboardingState: OnboardingState?
 
     var body: some View {
         ZStack {
@@ -18,16 +21,37 @@ struct RootCoordinator: View {
                 SplashView()
                     .transition(.opacity)
                     .task { await bootstrap() }
+
             case .auth:
                 AuthGateView(onAuthenticated: { Task { await routeAfterAuth() } })
                     .transition(.opacity)
+
             case .onboarding:
-                OnboardingCoordinator {
+                OnboardingCoordinator { state in
+                    onboardingState = state
                     withAnimation(.easeInOut(duration: Theme.Motion.base)) {
+                        destination = .planGeneration
+                    }
+                }
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+
+            case .planGeneration:
+                PlanGenerationView(onboarding: onboardingState) { result, inputs in
+                    withAnimation(.easeInOut(duration: Theme.Motion.base)) {
+                        destination = .planPreview(result, inputs)
+                    }
+                }
+                .transition(.opacity)
+
+            case let .planPreview(result, inputs):
+                PlanPreviewView(result: result, inputs: inputs) {
+                    withAnimation(.easeInOut(duration: Theme.Motion.base)) {
+                        // Paywall will slot in here once Phase 5 lands.
                         destination = .main
                     }
                 }
                 .transition(.move(edge: .trailing).combined(with: .opacity))
+
             case .main:
                 PlaceholderMainView()
                     .transition(.opacity)
@@ -37,7 +61,6 @@ struct RootCoordinator: View {
     }
 
     private func bootstrap() async {
-        // Splash min duration — punchy but not interruptive.
         try? await Task.sleep(for: .milliseconds(900))
         await routeAfterAuth()
     }
@@ -49,7 +72,12 @@ struct RootCoordinator: View {
         }
         do {
             let profile = try await ProfileService.shared.fetchCurrent()
-            destination = (profile?.onboardingCompletedAt != nil) ? .main : .onboarding
+            if profile?.onboardingCompletedAt != nil {
+                // Returning user: skip straight to main (we'll fetch their last target there in Phase 4).
+                destination = .main
+            } else {
+                destination = .onboarding
+            }
         } catch {
             destination = .onboarding
         }

@@ -2,8 +2,9 @@
 
 An AI-powered calorie & macro coach for fitness-focused users (16–25). Native iOS in Swift + SwiftUI, backed by Supabase.
 
-> **Phase 1 status:** scaffold + onboarding flow.
-> Plan generation, food scan, paywall, dashboard, and compliance polish land in Phases 2–6.
+> **Phase 1 status:** scaffold + onboarding flow ✅
+> **Phase 2 status:** TDEE engine + plan generation + plan preview ✅
+> Food scan, paywall, dashboard, and compliance polish land in Phases 3–6.
 
 ---
 
@@ -25,7 +26,8 @@ VibeNutrition/
   Features/
     Auth/             # sign-in gate
     Onboarding/       # state, card, 12 screens, coordinator
-    # Plan/, Scan/, Paywall/, Dashboard/, Profile/ land later
+    Plan/             # NutritionEngine, PlanGenerator, generation + preview screens
+    # Scan/, Paywall/, Dashboard/, Profile/ land later
   Models/             # Codable types mirroring the Postgres schema
   Resources/          # Secrets.plist, asset catalogs
   Services/           # Supabase, Auth, Profile, Goal
@@ -93,6 +95,14 @@ xcodebuild test -scheme VibeNutrition -destination 'platform=iOS Simulator,name=
 - progress monotonicity
 - back-button underflow guard
 
+`NutritionEngineTests` covers:
+- Mifflin-St Jeor BMR against known reference values (male/female/other)
+- activity multiplier baselines + step bump cap
+- ±20% goal-adjustment cap
+- protein priority + fat floor in macro split
+- non-negative macros at very low kcal targets
+- end-to-end compute returns sensible numbers
+
 ## Phase 1 acceptance criteria
 
 - [x] Project generates cleanly via XcodeGen
@@ -104,10 +114,21 @@ xcodebuild test -scheme VibeNutrition -destination 'platform=iOS Simulator,name=
 - [x] Top progress bar, haptics, slide transitions
 - [x] Dark-mode-only theme with neon accent gradient
 
+## Phase 2 acceptance criteria
+
+- [x] Pure `NutritionEngine` functions (no IO, fully unit-testable)
+- [x] Mifflin-St Jeor BMR, activity multiplier with step data bump (capped +0.10)
+- [x] Goal-adjusted kcal capped at ±20% TDEE
+- [x] Protein priority (1.6–2.2 g/kg by goal), fat floor ≥0.8 g/kg, carbs remainder
+- [x] HealthKit reads 14-day avg steps when user opted in
+- [x] `PlanGenerator` runs honest staged status messages (no fake counters)
+- [x] `targets` row written to Supabase on completion
+- [x] Plan preview shows kcal ring, macro split, weekly projection, computation breakdown
+- [x] Plan preview shown **before** any paywall
+
 ## Coming next
 
-- **Phase 2:** TDEE/macro engine (Mifflin-St Jeor) + plan preview screen
 - **Phase 3:** Food scan via OpenAI Vision edge function
 - **Phase 4:** Daily dashboard (kcal ring, macro bars, streak)
-- **Phase 5:** RevenueCat paywall
+- **Phase 5:** RevenueCat paywall (slots between plan preview and main)
 - **Phase 6:** Profile, compliance (delete account, data export), notifications, weekly reports
