@@ -1,5 +1,10 @@
 import SwiftUI
 
+#Preview {
+    MealsPerDayScreen(state: OnboardingState())
+        .preferredColorScheme(.dark)
+}
+
 struct MealsPerDayScreen: View {
     @Bindable var state: OnboardingState
     @State private var local: Int = 3

@@ -1,5 +1,10 @@
 import SwiftUI
 
+#Preview {
+    TrainingDaysScreen(state: OnboardingState())
+        .preferredColorScheme(.dark)
+}
+
 struct TrainingDaysScreen: View {
     @Bindable var state: OnboardingState
     @State private var local: Int = 3

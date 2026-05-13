@@ -74,3 +74,8 @@ struct WeightCheckInSheet: View {
         }
     }
 }
+
+#Preview {
+    WeightCheckInSheet(onDismiss: {})
+        .preferredColorScheme(.dark)
+}

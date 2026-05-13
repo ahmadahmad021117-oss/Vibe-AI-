@@ -246,3 +246,8 @@ struct ShareSheet: UIViewControllerRepresentable {
     }
     func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}
 }
+
+#Preview {
+    ProfileView()
+        .preferredColorScheme(.dark)
+}

@@ -1,5 +1,10 @@
 import SwiftUI
 
+#Preview {
+    AgeScreen(state: OnboardingState())
+        .preferredColorScheme(.dark)
+}
+
 struct AgeScreen: View {
     @Bindable var state: OnboardingState
     @State private var local: Int = 22

@@ -1,5 +1,10 @@
 import SwiftUI
 
+#Preview {
+    GoalScreen(state: OnboardingState())
+        .preferredColorScheme(.dark)
+}
+
 struct GoalScreen: View {
     @Bindable var state: OnboardingState
 

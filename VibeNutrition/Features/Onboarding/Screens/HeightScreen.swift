@@ -1,5 +1,10 @@
 import SwiftUI
 
+#Preview {
+    HeightScreen(state: OnboardingState())
+        .preferredColorScheme(.dark)
+}
+
 struct HeightScreen: View {
     @Bindable var state: OnboardingState
     @State private var cm: Double = 175

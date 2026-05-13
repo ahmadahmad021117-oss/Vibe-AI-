@@ -1,5 +1,10 @@
 import SwiftUI
 
+#Preview {
+    DietaryPrefScreen(state: OnboardingState())
+        .preferredColorScheme(.dark)
+}
+
 struct DietaryPrefScreen: View {
     @Bindable var state: OnboardingState
 

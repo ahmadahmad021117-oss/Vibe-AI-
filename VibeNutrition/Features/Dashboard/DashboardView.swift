@@ -331,3 +331,9 @@ private struct LogRow: View {
     }
 }
 
+#Preview {
+    // Loads from Supabase on appear; preview shows the empty/loading layout.
+    DashboardView()
+        .preferredColorScheme(.dark)
+}
+

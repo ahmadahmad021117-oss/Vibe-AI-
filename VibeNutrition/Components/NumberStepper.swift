@@ -54,3 +54,16 @@ private extension Comparable {
         min(max(self, range.lowerBound), range.upperBound)
     }
 }
+
+#Preview {
+    struct Wrapper: View {
+        @State var value = 22
+        var body: some View {
+            NumberStepper(value: $value, range: 14...100, suffix: "yrs")
+        }
+    }
+    return Wrapper()
+        .padding()
+        .background(Theme.Palette.bg)
+        .preferredColorScheme(.dark)
+}

@@ -96,3 +96,8 @@ struct ManualEntrySheet: View {
         }
     }
 }
+
+#Preview {
+    ManualEntrySheet(onSaved: {})
+        .preferredColorScheme(.dark)
+}

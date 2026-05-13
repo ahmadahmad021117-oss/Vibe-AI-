@@ -154,3 +154,8 @@ struct AuthGateView: View {
         return hash.map { String(format: "%02x", $0) }.joined()
     }
 }
+
+#Preview {
+    AuthGateView(onAuthenticated: {})
+        .preferredColorScheme(.dark)
+}

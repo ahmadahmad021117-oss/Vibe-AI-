@@ -223,3 +223,15 @@ private struct FoodItemRow: View {
         )
     }
 }
+
+#Preview {
+    let food = AnalyzedFood(items: [
+        FoodItem(name: "Grilled chicken breast", grams: 180, kcal: 297,
+                 proteinG: 56, carbsG: 0, fatG: 6.5, confidence: 0.92),
+        FoodItem(name: "Steamed broccoli", grams: 120, kcal: 41,
+                 proteinG: 3.4, carbsG: 8.4, fatG: 0.4, confidence: 0.85),
+    ])
+    return ScanReviewView(imageData: nil, imagePath: nil, food: food,
+                          onDone: {}, onRetake: {})
+        .preferredColorScheme(.dark)
+}

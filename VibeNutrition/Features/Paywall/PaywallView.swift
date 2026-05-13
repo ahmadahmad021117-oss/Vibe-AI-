@@ -220,3 +220,10 @@ struct PaywallView: View {
         }
     }
 }
+
+#Preview {
+    // Offerings come from RevenueCat at runtime; the preview shows the
+    // empty-offerings placeholder copy + the hero / features / action bar.
+    PaywallView(onUnlocked: {}, onSkip: {})
+        .preferredColorScheme(.dark)
+}

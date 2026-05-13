@@ -186,3 +186,10 @@ struct WeeklyProgressView: View {
         }
     }
 }
+
+#Preview {
+    // The view loads weekly summary from Supabase on appear; the preview
+    // shows the loading spinner against the dark background.
+    WeeklyProgressView()
+        .preferredColorScheme(.dark)
+}

@@ -235,3 +235,13 @@ private struct BulletRow: View {
         }
     }
 }
+
+#Preview {
+    let inputs = NutritionEngine.Inputs(
+        sex: .male, age: 28, heightCm: 180, weightKg: 80,
+        trainingDaysPerWeek: 4, avgSteps: 7500,
+        goal: .loseWeight, mainFocus: .fatLoss
+    )
+    return PlanPreviewView(result: NutritionEngine.compute(inputs), inputs: inputs) {}
+        .preferredColorScheme(.dark)
+}

@@ -1,5 +1,10 @@
 import SwiftUI
 
+#Preview {
+    SexScreen(state: OnboardingState())
+        .preferredColorScheme(.dark)
+}
+
 struct SexScreen: View {
     @Bindable var state: OnboardingState
 

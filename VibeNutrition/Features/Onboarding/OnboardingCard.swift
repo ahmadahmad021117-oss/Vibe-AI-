@@ -88,3 +88,20 @@ struct StepTransition: ViewModifier {
 extension View {
     func stepTransition() -> some View { modifier(StepTransition()) }
 }
+
+#Preview {
+    OnboardingCard(
+        title: "What's your goal?",
+        subtitle: "Pick the one that fits best — we'll tune from there.",
+        progress: 0.15,
+        canAdvance: true,
+        onBack: {},
+        onContinue: {}
+    ) {
+        VStack(spacing: 12) {
+            OptionCard(title: "Lose weight", systemImage: "arrow.down.right", isSelected: true) {}
+            OptionCard(title: "Build muscle", systemImage: "figure.strengthtraining.traditional", isSelected: false) {}
+        }
+    }
+    .preferredColorScheme(.dark)
+}
