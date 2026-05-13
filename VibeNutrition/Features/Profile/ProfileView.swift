@@ -213,7 +213,7 @@ struct ProfileView: View {
             try await AccountService.shared.deleteAccount()
             dismiss()
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.friendlyMessage
         }
     }
 
@@ -222,7 +222,7 @@ struct ProfileView: View {
             let url = try await AccountService.shared.exportData()
             exportURL = url
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.friendlyMessage
         }
     }
 

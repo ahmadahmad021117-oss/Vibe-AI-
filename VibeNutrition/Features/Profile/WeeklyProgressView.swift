@@ -182,7 +182,7 @@ struct WeeklyProgressView: View {
         do {
             summary = try await WeeklyProgressService.shared.fetch()
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.friendlyMessage
         }
     }
 }

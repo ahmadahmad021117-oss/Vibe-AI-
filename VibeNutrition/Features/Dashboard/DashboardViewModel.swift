@@ -29,15 +29,15 @@ final class DashboardViewModel {
         isLoading = true
         defer { isLoading = false }
         do {
-            async let targetTask = TargetService.shared.fetchLatest()
-            async let logsTask = FoodLogService.shared.fetchToday()
-            async let streakTask = StreakService.shared.currentStreak()
+            async let targetTask = withRetry { try await TargetService.shared.fetchLatest() }
+            async let logsTask = withRetry { try await FoodLogService.shared.fetchToday() }
+            async let streakTask = withRetry { try await StreakService.shared.currentStreak() }
             self.target = try await targetTask
             self.todayLogs = try await logsTask
             self.streak = try await streakTask
             self.errorMessage = nil
         } catch {
-            self.errorMessage = error.localizedDescription
+            self.errorMessage = error.friendlyMessage
         }
     }
 
@@ -46,7 +46,7 @@ final class DashboardViewModel {
             try await FoodLogService.shared.delete(id: log.id)
             todayLogs.removeAll { $0.id == log.id }
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.friendlyMessage
         }
     }
 }

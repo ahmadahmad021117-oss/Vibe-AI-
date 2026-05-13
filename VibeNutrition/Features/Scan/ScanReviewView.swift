@@ -162,7 +162,7 @@ struct ScanReviewView: View {
             }
         } catch {
             Haptics.error()
-            errorMessage = error.localizedDescription
+            errorMessage = error.friendlyMessage
         }
     }
 }

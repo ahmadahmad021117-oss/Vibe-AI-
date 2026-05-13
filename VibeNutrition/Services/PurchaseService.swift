@@ -30,7 +30,7 @@ final class PurchaseService {
             let result = try await Purchases.shared.logIn(userId.uuidString)
             self.customerInfo = result.customerInfo
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.friendlyMessage
         }
     }
 
@@ -39,7 +39,7 @@ final class PurchaseService {
             _ = try await Purchases.shared.logOut()
             self.customerInfo = nil
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.friendlyMessage
         }
     }
 
@@ -49,7 +49,7 @@ final class PurchaseService {
         do {
             self.offerings = try await Purchases.shared.offerings()
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.friendlyMessage
         }
     }
 
@@ -60,7 +60,7 @@ final class PurchaseService {
             await EntitlementService.shared.refresh()
             return result.customerInfo.entitlements[Self.premiumEntitlementID]?.isActive == true
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.friendlyMessage
             return false
         }
     }
@@ -72,7 +72,7 @@ final class PurchaseService {
             await EntitlementService.shared.refresh()
             return info.entitlements[Self.premiumEntitlementID]?.isActive == true
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.friendlyMessage
             return false
         }
     }

@@ -70,7 +70,7 @@ struct WeightCheckInSheet: View {
             onDismiss()
         } catch {
             Haptics.error()
-            self.error = error.localizedDescription
+            self.error = error.friendlyMessage
         }
     }
 }

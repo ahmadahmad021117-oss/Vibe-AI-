@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DashboardView: View {
     @State private var vm = DashboardViewModel()
+    @State private var network = NetworkStatus.shared
     @State private var showingScan = false
     @State private var showingManualEntry = false
     @State private var showingWeightCheckIn = false
@@ -12,19 +13,24 @@ struct DashboardView: View {
         ZStack {
             Theme.Palette.bg.ignoresSafeArea()
 
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: Theme.Spacing.lg) {
-                    header
-                    ringCard
-                    macroBars
-                    actionsRow
-                    todaySection
-                    Spacer(minLength: 80)
+            VStack(spacing: 0) {
+                if !network.isOnline {
+                    offlineBanner
                 }
-                .padding(.horizontal, Theme.Spacing.lg)
-                .padding(.top, Theme.Spacing.sm)
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: Theme.Spacing.lg) {
+                        header
+                        ringCard
+                        macroBars
+                        actionsRow
+                        todaySection
+                        Spacer(minLength: 80)
+                    }
+                    .padding(.horizontal, Theme.Spacing.lg)
+                    .padding(.top, Theme.Spacing.sm)
+                }
+                .refreshable { await vm.load() }
             }
-            .refreshable { await vm.load() }
         }
         .task { await vm.load() }
         .fullScreenCover(isPresented: $showingScan) {
@@ -47,6 +53,22 @@ struct DashboardView: View {
             WeeklyProgressView()
         }
         .preferredColorScheme(.dark)
+    }
+
+    private var offlineBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "wifi.exclamationmark")
+                .font(.system(size: 13, weight: .semibold))
+            Text("Offline — changes will sync when you reconnect.")
+                .font(Theme.Type.caption)
+        }
+        .foregroundStyle(Theme.Palette.warning)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .padding(.horizontal, Theme.Spacing.lg)
+        .background(Theme.Palette.surface)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Offline. Changes will sync when you reconnect.")
     }
 
     private var header: some View {

@@ -80,7 +80,7 @@ final class PlanGenerator {
 
             stage = .ready
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.friendlyMessage
             stage = .failed
         }
     }
