@@ -60,7 +60,7 @@ struct DashboardView: View {
             Image(systemName: "wifi.exclamationmark")
                 .font(.system(size: 13, weight: .semibold))
             Text("Offline — changes will sync when you reconnect.")
-                .font(Theme.Type.caption)
+                .font(Theme.Typo.caption)
         }
         .foregroundStyle(Theme.Palette.warning)
         .frame(maxWidth: .infinity)
@@ -75,10 +75,10 @@ struct DashboardView: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(greeting)
-                    .font(Theme.Type.caption)
+                    .font(Theme.Typo.caption)
                     .foregroundStyle(Theme.Palette.textMuted)
                 Text(dateString)
-                    .font(Theme.Type.h2)
+                    .font(Theme.Typo.h2)
                     .foregroundStyle(Theme.Palette.text)
             }
             Spacer()
@@ -106,7 +106,7 @@ struct DashboardView: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Theme.Palette.warning)
                 Text("\(vm.streak)")
-                    .font(Theme.Type.bodyBold)
+                    .font(Theme.Typo.bodyBold)
                     .foregroundStyle(Theme.Palette.text)
             }
             .padding(.horizontal, 10)
@@ -128,15 +128,15 @@ struct DashboardView: View {
                     .animation(Theme.Motion.spring, value: vm.kcalProgress)
                 VStack(spacing: 0) {
                     Text("\(vm.kcalRemaining)")
-                        .font(Theme.Type.numeralXL)
+                        .font(Theme.Typo.numeralXL)
                         .foregroundStyle(Theme.Palette.text)
                         .contentTransition(.numericText(value: Double(vm.kcalRemaining)))
                     Text("kcal left")
-                        .font(Theme.Type.body)
+                        .font(Theme.Typo.body)
                         .foregroundStyle(Theme.Palette.textMuted)
                     if let t = vm.target {
                         Text("of \(t.kcal)")
-                            .font(Theme.Type.caption)
+                            .font(Theme.Typo.caption)
                             .foregroundStyle(Theme.Palette.textDim)
                     }
                 }
@@ -173,11 +173,11 @@ struct DashboardView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text(label)
-                    .font(Theme.Type.caption)
+                    .font(Theme.Typo.caption)
                     .foregroundStyle(Theme.Palette.textMuted)
                 Spacer()
                 Text("\(Int(consumed.rounded())) / \(Int(target.rounded())) g")
-                    .font(Theme.Type.caption)
+                    .font(Theme.Typo.caption)
                     .foregroundStyle(Theme.Palette.text)
             }
             GeometryReader { proxy in
@@ -218,7 +218,7 @@ struct DashboardView: View {
                     .font(.system(size: 22, weight: .semibold))
                     .foregroundStyle(Theme.Palette.text)
                 Text(title)
-                    .font(Theme.Type.caption)
+                    .font(Theme.Typo.caption)
                     .foregroundStyle(Theme.Palette.textMuted)
             }
             .frame(maxWidth: .infinity, minHeight: 70)
@@ -231,11 +231,11 @@ struct DashboardView: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             HStack {
                 Text("Today")
-                    .font(Theme.Type.h3)
+                    .font(Theme.Typo.h3)
                     .foregroundStyle(Theme.Palette.text)
                 Spacer()
                 Text("\(vm.todayLogs.count) entr\(vm.todayLogs.count == 1 ? "y" : "ies")")
-                    .font(Theme.Type.caption)
+                    .font(Theme.Typo.caption)
                     .foregroundStyle(Theme.Palette.textMuted)
             }
             if vm.todayLogs.isEmpty {
@@ -256,10 +256,10 @@ struct DashboardView: View {
                 .font(.system(size: 36))
                 .foregroundStyle(Theme.Palette.textDim)
             Text("Nothing logged yet.")
-                .font(Theme.Type.body)
+                .font(Theme.Typo.body)
                 .foregroundStyle(Theme.Palette.textMuted)
             Text("Tap Scan or Manual to log your first meal.")
-                .font(Theme.Type.caption)
+                .font(Theme.Typo.caption)
                 .foregroundStyle(Theme.Palette.textDim)
         }
         .frame(maxWidth: .infinity)
@@ -297,15 +297,15 @@ private struct LogRow: View {
                 .background(Theme.Palette.surfaceHi, in: Circle())
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(Theme.Type.bodyBold)
+                    .font(Theme.Typo.bodyBold)
                     .foregroundStyle(Theme.Palette.text)
                 Text(timeString)
-                    .font(Theme.Type.caption)
+                    .font(Theme.Typo.caption)
                     .foregroundStyle(Theme.Palette.textMuted)
             }
             Spacer()
             Text("\(log.kcal) kcal")
-                .font(Theme.Type.bodyBold)
+                .font(Theme.Typo.bodyBold)
                 .foregroundStyle(Theme.Palette.text)
         }
         .padding(Theme.Spacing.md)

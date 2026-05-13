@@ -30,7 +30,7 @@ struct WeeklyProgressView: View {
                 }
             } else if let error {
                 Text(error)
-                    .font(Theme.Type.body)
+                    .font(Theme.Typo.body)
                     .foregroundStyle(Theme.Palette.danger)
                     .padding(Theme.Spacing.lg)
             }
@@ -43,10 +43,10 @@ struct WeeklyProgressView: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text("This week")
-                    .font(Theme.Type.caption)
+                    .font(Theme.Typo.caption)
                     .foregroundStyle(Theme.Palette.textMuted)
                 Text("Progress")
-                    .font(Theme.Type.h1)
+                    .font(Theme.Typo.h1)
                     .foregroundStyle(Theme.Palette.text)
             }
             Spacer()
@@ -77,25 +77,25 @@ struct WeeklyProgressView: View {
     private func weightCard(_ s: WeeklyProgressService.Summary) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             Text("Weight")
-                .font(Theme.Type.h3)
+                .font(Theme.Typo.h3)
                 .foregroundStyle(Theme.Palette.text)
             if let delta = s.actualDeltaKg {
                 HStack(alignment: .lastTextBaseline, spacing: 6) {
                     Text("\(delta >= 0 ? "+" : "")\(String(format: "%.2f", delta)) kg")
-                        .font(Theme.Type.numeralLG)
+                        .font(Theme.Typo.numeralLG)
                         .foregroundStyle(Theme.Palette.text)
                     Text("vs last week")
-                        .font(Theme.Type.body)
+                        .font(Theme.Typo.body)
                         .foregroundStyle(Theme.Palette.textMuted)
                 }
                 if let expected = s.expectedDeltaKg {
                     Text("Expected: \(expected >= 0 ? "+" : "")\(String(format: "%.2f", expected)) kg/week")
-                        .font(Theme.Type.caption)
+                        .font(Theme.Typo.caption)
                         .foregroundStyle(Theme.Palette.textMuted)
                 }
             } else {
                 Text("Log your weight twice this week to see a trend.")
-                    .font(Theme.Type.body)
+                    .font(Theme.Typo.body)
                     .foregroundStyle(Theme.Palette.textMuted)
             }
         }
@@ -111,17 +111,17 @@ struct WeeklyProgressView: View {
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(Theme.Palette.warning)
                 Text("Time to recalibrate")
-                    .font(Theme.Type.h3)
+                    .font(Theme.Typo.h3)
                     .foregroundStyle(Theme.Palette.text)
             }
             Text("Your actual progress is off from what your plan expected. Tap to regenerate with updated weight.")
-                .font(Theme.Type.body)
+                .font(Theme.Typo.body)
                 .foregroundStyle(Theme.Palette.textMuted)
             if recalibrating {
                 HStack(spacing: Theme.Spacing.sm) {
                     ProgressView().tint(Theme.Palette.accent)
                     Text("Recalibrating…")
-                        .font(Theme.Type.body)
+                        .font(Theme.Typo.body)
                         .foregroundStyle(Theme.Palette.textMuted)
                 }
                 .frame(maxWidth: .infinity, alignment: .center)
@@ -133,7 +133,7 @@ struct WeeklyProgressView: View {
             }
             if let recalibrateError {
                 Text(recalibrateError)
-                    .font(Theme.Type.caption)
+                    .font(Theme.Typo.caption)
                     .foregroundStyle(Theme.Palette.danger)
             }
         }
@@ -167,11 +167,11 @@ struct WeeklyProgressView: View {
     private func statRow(_ label: String, value: String) -> some View {
         HStack {
             Text(label)
-                .font(Theme.Type.body)
+                .font(Theme.Typo.body)
                 .foregroundStyle(Theme.Palette.textMuted)
             Spacer()
             Text(value)
-                .font(Theme.Type.bodyBold)
+                .font(Theme.Typo.bodyBold)
                 .foregroundStyle(Theme.Palette.text)
         }
     }

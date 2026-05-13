@@ -44,13 +44,13 @@ struct MealSuggestionsSheet: View {
                     VStack(spacing: Theme.Spacing.md) {
                         ProgressView().tint(Theme.Palette.accent)
                         Text("Coming up with ideas…")
-                            .font(Theme.Type.body)
+                            .font(Theme.Typo.body)
                             .foregroundStyle(Theme.Palette.textMuted)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if let error {
                     Text(error)
-                        .font(Theme.Type.body)
+                        .font(Theme.Typo.body)
                         .foregroundStyle(Theme.Palette.danger)
                     Spacer()
                 } else {
@@ -74,10 +74,10 @@ struct MealSuggestionsSheet: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Next meal ideas")
-                .font(Theme.Type.h2)
+                .font(Theme.Typo.h2)
                 .foregroundStyle(Theme.Palette.text)
             Text("Matched to your remaining macros today.")
-                .font(Theme.Type.body)
+                .font(Theme.Typo.body)
                 .foregroundStyle(Theme.Palette.textMuted)
         }
     }
@@ -86,15 +86,15 @@ struct MealSuggestionsSheet: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             HStack {
                 Text(s.name)
-                    .font(Theme.Type.h3)
+                    .font(Theme.Typo.h3)
                     .foregroundStyle(Theme.Palette.text)
                 Spacer()
                 Text("\(s.kcal) kcal")
-                    .font(Theme.Type.bodyBold)
+                    .font(Theme.Typo.bodyBold)
                     .foregroundStyle(Theme.Palette.accent)
             }
             Text(s.description)
-                .font(Theme.Type.body)
+                .font(Theme.Typo.body)
                 .foregroundStyle(Theme.Palette.textMuted)
             HStack(spacing: Theme.Spacing.md) {
                 macroDot("P", value: s.proteinG)
@@ -109,7 +109,7 @@ struct MealSuggestionsSheet: View {
 
     private func macroDot(_ label: String, value: Double) -> some View {
         Text("\(label) \(Int(value.rounded()))g")
-            .font(Theme.Type.caption)
+            .font(Theme.Typo.caption)
             .foregroundStyle(Theme.Palette.textMuted)
             .padding(.vertical, 4)
             .padding(.horizontal, 8)

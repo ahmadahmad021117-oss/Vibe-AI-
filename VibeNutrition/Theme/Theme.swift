@@ -57,7 +57,7 @@ enum Theme {
         static let spring = Animation.interpolatingSpring(stiffness: 220, damping: 22)
     }
 
-    enum Type {
+    enum Typo {
         static let h1 = Font.system(size: 32, weight: .bold, design: .rounded)
         static let h2 = Font.system(size: 24, weight: .bold, design: .rounded)
         static let h3 = Font.system(size: 20, weight: .semibold, design: .rounded)

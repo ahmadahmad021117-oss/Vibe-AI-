@@ -54,10 +54,10 @@ struct PlanPreviewView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Your plan")
-                .font(Theme.Type.h1)
+                .font(Theme.Typo.h1)
                 .foregroundStyle(Theme.Palette.text)
             Text(goalSubtitle)
-                .font(Theme.Type.body)
+                .font(Theme.Typo.body)
                 .foregroundStyle(Theme.Palette.textMuted)
         }
     }
@@ -77,7 +77,7 @@ struct PlanPreviewView: View {
         VStack(spacing: Theme.Spacing.md) {
             HStack {
                 Text("Daily macros")
-                    .font(Theme.Type.h3)
+                    .font(Theme.Typo.h3)
                     .foregroundStyle(Theme.Palette.text)
                 Spacer()
             }
@@ -99,18 +99,18 @@ struct PlanPreviewView: View {
     private var weeklyProjection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             Text("Weekly projection")
-                .font(Theme.Type.h3)
+                .font(Theme.Typo.h3)
                 .foregroundStyle(Theme.Palette.text)
             HStack(alignment: .lastTextBaseline, spacing: 6) {
                 Text(weeklyDeltaText)
-                    .font(Theme.Type.numeralLG)
+                    .font(Theme.Typo.numeralLG)
                     .foregroundStyle(deltaTint)
                 Text("per week")
-                    .font(Theme.Type.body)
+                    .font(Theme.Typo.body)
                     .foregroundStyle(Theme.Palette.textMuted)
             }
             Text("Estimates are averages. Real progress depends on adherence, sleep, training, and stress — give it 2–3 weeks before adjusting.")
-                .font(Theme.Type.caption)
+                .font(Theme.Typo.caption)
                 .foregroundStyle(Theme.Palette.textMuted)
         }
         .padding(Theme.Spacing.md)
@@ -134,7 +134,7 @@ struct PlanPreviewView: View {
     private var rationale: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             Text("How we got there")
-                .font(Theme.Type.h3)
+                .font(Theme.Typo.h3)
                 .foregroundStyle(Theme.Palette.text)
             BulletRow(label: "BMR (Mifflin-St Jeor)", value: "\(result.bmr) kcal")
             BulletRow(label: "Activity multiplier", value: String(format: "×%.2f", result.activityMultiplier))
@@ -166,11 +166,11 @@ private struct KcalRing: View {
                 .rotationEffect(.degrees(-90))
             VStack(spacing: 0) {
                 Text("\(kcal)")
-                    .font(Theme.Type.numeralXL)
+                    .font(Theme.Typo.numeralXL)
                     .foregroundStyle(Theme.Palette.text)
                     .contentTransition(.numericText(value: Double(kcal)))
                 Text("kcal / day")
-                    .font(Theme.Type.body)
+                    .font(Theme.Typo.body)
                     .foregroundStyle(Theme.Palette.textMuted)
             }
         }
@@ -209,11 +209,11 @@ private struct MacroChip: View {
             HStack(spacing: 6) {
                 Circle().fill(color).frame(width: 8, height: 8)
                 Text(label)
-                    .font(Theme.Type.caption)
+                    .font(Theme.Typo.caption)
                     .foregroundStyle(Theme.Palette.textMuted)
             }
             Text("\(grams) g")
-                .font(Theme.Type.bodyBold)
+                .font(Theme.Typo.bodyBold)
                 .foregroundStyle(Theme.Palette.text)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -226,11 +226,11 @@ private struct BulletRow: View {
     var body: some View {
         HStack {
             Text(label)
-                .font(Theme.Type.body)
+                .font(Theme.Typo.body)
                 .foregroundStyle(Theme.Palette.textMuted)
             Spacer()
             Text(value)
-                .font(Theme.Type.bodyBold)
+                .font(Theme.Typo.bodyBold)
                 .foregroundStyle(Theme.Palette.text)
         }
     }

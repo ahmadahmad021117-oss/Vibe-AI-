@@ -20,12 +20,12 @@ struct OnboardingCard<Content: View>: View {
 
                 VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
                     Text(title)
-                        .font(Theme.Type.h1)
+                        .font(Theme.Typo.h1)
                         .foregroundStyle(Theme.Palette.text)
                         .multilineTextAlignment(.leading)
                     if let subtitle {
                         Text(subtitle)
-                            .font(Theme.Type.body)
+                            .font(Theme.Typo.body)
                             .foregroundStyle(Theme.Palette.textMuted)
                     }
                 }

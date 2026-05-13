@@ -18,7 +18,7 @@ struct SplashView: View {
                             .foregroundStyle(Theme.Palette.bg)
                     )
                 Text("Vibe")
-                    .font(Theme.Type.h1)
+                    .font(Theme.Typo.h1)
                     .foregroundStyle(Theme.Palette.text)
             }
             .onAppear {

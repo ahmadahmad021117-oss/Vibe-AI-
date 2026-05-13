@@ -47,11 +47,11 @@ struct PaywallView: View {
                 .font(.system(size: 56, weight: .heavy))
                 .foregroundStyle(Theme.Gradients.accent)
             Text("Unlock Vibe Premium")
-                .font(Theme.Type.h1)
+                .font(Theme.Typo.h1)
                 .foregroundStyle(Theme.Palette.text)
                 .multilineTextAlignment(.center)
             Text("Everything you need to actually hit your goal.")
-                .font(Theme.Type.body)
+                .font(Theme.Typo.body)
                 .foregroundStyle(Theme.Palette.textMuted)
                 .multilineTextAlignment(.center)
         }
@@ -76,7 +76,7 @@ struct PaywallView: View {
                 .foregroundStyle(Theme.Palette.accent)
                 .frame(width: 24)
             Text(text)
-                .font(Theme.Type.body)
+                .font(Theme.Typo.body)
                 .foregroundStyle(Theme.Palette.text)
             Spacer()
         }
@@ -90,7 +90,7 @@ struct PaywallView: View {
                 }
             } else {
                 Text("No packages available. Configure offerings in RevenueCat.")
-                    .font(Theme.Type.caption)
+                    .font(Theme.Typo.caption)
                     .foregroundStyle(Theme.Palette.textMuted)
                     .padding(.vertical, Theme.Spacing.lg)
             }
@@ -110,7 +110,7 @@ struct PaywallView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(title)
-                            .font(Theme.Type.bodyBold)
+                            .font(Theme.Typo.bodyBold)
                             .foregroundStyle(Theme.Palette.text)
                         if isAnnual {
                             Text("Best value")
@@ -121,7 +121,7 @@ struct PaywallView: View {
                         }
                     }
                     Text(price)
-                        .font(Theme.Type.caption)
+                        .font(Theme.Typo.caption)
                         .foregroundStyle(Theme.Palette.textMuted)
                 }
                 Spacer()
@@ -156,7 +156,7 @@ struct PaywallView: View {
 
     private var finePrint: some View {
         Text("Subscription auto-renews unless cancelled at least 24 hours before the end of the period. Manage in App Store > Subscriptions.")
-            .font(Theme.Type.caption)
+            .font(Theme.Typo.caption)
             .foregroundStyle(Theme.Palette.textDim)
             .multilineTextAlignment(.center)
     }
@@ -171,11 +171,11 @@ struct PaywallView: View {
             }
             HStack {
                 Button("Restore") { Task { await restore() } }
-                    .font(Theme.Type.caption)
+                    .font(Theme.Typo.caption)
                     .foregroundStyle(Theme.Palette.textMuted)
                 Spacer()
                 Button("Not now") { onSkip() }
-                    .font(Theme.Type.caption)
+                    .font(Theme.Typo.caption)
                     .foregroundStyle(Theme.Palette.textMuted)
             }
             .padding(.horizontal, Theme.Spacing.sm)
