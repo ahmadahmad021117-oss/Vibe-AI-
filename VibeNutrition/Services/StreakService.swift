@@ -40,7 +40,7 @@ final class StreakService {
     /// Pure helper, exposed for testing.
     /// Counts consecutive days back from `now` that appear in the input timestamps.
     /// Capped at `maxStreakDays` as a defensive bound.
-    static func computeStreak(loggedAt: [Date], now: Date, calendar: Calendar) -> Int {
+    nonisolated static func computeStreak(loggedAt: [Date], now: Date, calendar: Calendar) -> Int {
         let loggedDays = Set(loggedAt.map { calendar.startOfDay(for: $0) })
         var streak = 0
         var cursor = calendar.startOfDay(for: now)

@@ -60,7 +60,7 @@ final class FoodScanService {
         do {
             _ = try await SupabaseService.shared.storage
                 .from("food-scans")
-                .upload(path: path, file: imageData, options: FileOptions(contentType: "image/jpeg"))
+                .upload(path, data: imageData, options: FileOptions(contentType: "image/jpeg"))
         } catch {
             throw FoodScanError.uploadFailed
         }
