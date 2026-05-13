@@ -1,0 +1,103 @@
+/*
+ * Localizable.strings (English)
+ *
+ * Two kinds of entries live here:
+ *
+ * 1. Keys for programmatic strings constructed via String(localized:). These
+ *    are namespaced (error.*, food_scan.*, …) — the Swift call references
+ *    the key directly, so renaming a key requires renaming the Swift call.
+ *
+ * 2. Verbatim SwiftUI Text() strings. SwiftUI's Text initializer treats a
+ *    string literal as a LocalizedStringKey, so any literal you've already
+ *    written in a Text() will be looked up here if a matching entry exists.
+ *    Add entries here as you localize each screen — missing keys fall back
+ *    to the literal, so partial coverage is safe.
+ *
+ * To add a new locale: duplicate the en.lproj folder (e.g. fr.lproj) and
+ * translate the values. Xcode + xcodegen pick up sibling .lproj folders
+ * automatically.
+ */
+
+// MARK: - Network / generic errors (NetworkStatus.swift)
+
+"error.offline" = "You're offline. Reconnect and try again.";
+"error.timed_out" = "That took too long. Check your connection and try again.";
+"error.unreachable" = "Couldn't reach the server. Try again in a moment.";
+"error.cancelled" = "Request cancelled.";
+"error.network_generic" = "Network error. Try again.";
+"error.generic" = "Something went wrong. Try again.";
+
+// MARK: - Food scan (FoodScanService.swift)
+
+"food_scan.error.no_user" = "Sign in to scan food.";
+"food_scan.error.upload_failed" = "Couldn't upload your photo. Try again.";
+"food_scan.error.analysis_failed" = "Couldn't analyze the photo (%@).";
+"food_scan.error.limit_reached" = "Daily free scan limit reached. Upgrade for unlimited scans.";
+
+// MARK: - Plan generation (PlanGenerator.swift)
+
+"plan.error.missing_profile" = "Missing profile data. Complete onboarding first.";
+
+// MARK: - Food log
+
+"food_log.error.not_signed_in" = "Not signed in.";
+
+// MARK: - Dashboard (SwiftUI Text — verbatim keys)
+
+"Good morning" = "Good morning";
+"Good afternoon" = "Good afternoon";
+"Good evening" = "Good evening";
+"Late night" = "Late night";
+"kcal left" = "kcal left";
+"Nothing logged yet." = "Nothing logged yet.";
+"Tap Scan or Manual to log your first meal." = "Tap Scan or Manual to log your first meal.";
+"Today" = "Today";
+"Scan" = "Scan";
+"Manual" = "Manual";
+"Weight" = "Weight";
+"Protein" = "Protein";
+"Carbs" = "Carbs";
+"Fat" = "Fat";
+"Offline — changes will sync when you reconnect." = "Offline — changes will sync when you reconnect.";
+
+// MARK: - Weekly progress
+
+"This week" = "This week";
+"Progress" = "Progress";
+"Days logged" = "Days logged";
+"Avg kcal/day" = "Avg kcal/day";
+"Avg protein/day" = "Avg protein/day";
+"Adherence" = "Adherence";
+"Time to recalibrate" = "Time to recalibrate";
+"Recalibrate plan" = "Recalibrate plan";
+"Recalibrating…" = "Recalibrating…";
+
+// MARK: - Paywall
+
+"Unlock Vibe Premium" = "Unlock Vibe Premium";
+"Everything you need to actually hit your goal." = "Everything you need to actually hit your goal.";
+"Start premium" = "Start premium";
+"Processing…" = "Processing…";
+"Restore" = "Restore";
+"Not now" = "Not now";
+"Best value" = "Best value";
+
+// MARK: - Common buttons / actions
+
+"Continue" = "Continue";
+"Back" = "Back";
+"Cancel" = "Cancel";
+"Save" = "Save";
+"Delete" = "Delete";
+"Done" = "Done";
+"OK" = "OK";
+"Retry" = "Retry";
+
+// MARK: - Onboarding (sex screen)
+
+"Sex assigned at birth" = "Sex assigned at birth";
+"Used for calorie math (Mifflin-St Jeor). Stays private." = "Used for calorie math (Mifflin-St Jeor). Stays private.";
+"Male" = "Male";
+"Female" = "Female";
+"Prefer not to say" = "Prefer not to say";
+"We'll use a neutral calorie estimate." = "We'll use a neutral calorie estimate.";

@@ -38,24 +38,36 @@ extension Error {
         if let code = urlError?.code {
             switch code {
             case .notConnectedToInternet:
-                return "You're offline. Reconnect and try again."
+                return String(localized: "error.offline",
+                              defaultValue: "You're offline. Reconnect and try again.",
+                              comment: "Shown when the device has no network connection")
             case .timedOut:
-                return "That took too long. Check your connection and try again."
+                return String(localized: "error.timed_out",
+                              defaultValue: "That took too long. Check your connection and try again.",
+                              comment: "Shown when a network request times out")
             case .networkConnectionLost,
                  .cannotConnectToHost,
                  .dnsLookupFailed,
                  .cannotFindHost:
-                return "Couldn't reach the server. Try again in a moment."
+                return String(localized: "error.unreachable",
+                              defaultValue: "Couldn't reach the server. Try again in a moment.",
+                              comment: "Shown when the server can't be reached")
             case .cancelled:
-                return "Request cancelled."
+                return String(localized: "error.cancelled",
+                              defaultValue: "Request cancelled.",
+                              comment: "Shown when a network request is cancelled")
             default:
-                return "Network error. Try again."
+                return String(localized: "error.network_generic",
+                              defaultValue: "Network error. Try again.",
+                              comment: "Generic network error")
             }
         }
 
         let desc = self.localizedDescription
         if desc.isEmpty || desc.count > 140 {
-            return "Something went wrong. Try again."
+            return String(localized: "error.generic",
+                          defaultValue: "Something went wrong. Try again.",
+                          comment: "Generic fallback error message")
         }
         return desc
     }

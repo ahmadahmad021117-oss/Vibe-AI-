@@ -9,10 +9,25 @@ enum FoodScanError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .noUser: return "Sign in to scan food."
-        case .uploadFailed: return "Couldn't upload your photo. Try again."
-        case .analysisFailed(let detail): return "Couldn't analyze the photo (\(detail))."
-        case .scanLimitReached: return "Daily free scan limit reached. Upgrade for unlimited scans."
+        case .noUser:
+            return String(localized: "food_scan.error.no_user",
+                          defaultValue: "Sign in to scan food.",
+                          comment: "Food scan: not signed in")
+        case .uploadFailed:
+            return String(localized: "food_scan.error.upload_failed",
+                          defaultValue: "Couldn't upload your photo. Try again.",
+                          comment: "Food scan: image upload failed")
+        case .analysisFailed(let detail):
+            let template = String(
+                localized: "food_scan.error.analysis_failed",
+                defaultValue: "Couldn't analyze the photo (%@).",
+                comment: "Food scan: server analysis failed; %@ is a short server-supplied detail string"
+            )
+            return String(format: template, detail)
+        case .scanLimitReached:
+            return String(localized: "food_scan.error.limit_reached",
+                          defaultValue: "Daily free scan limit reached. Upgrade for unlimited scans.",
+                          comment: "Food scan: free-tier daily limit hit")
         }
     }
 }

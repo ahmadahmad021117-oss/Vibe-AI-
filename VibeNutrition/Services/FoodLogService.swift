@@ -11,7 +11,11 @@ final class FoodLogService {
         guard let userId = AuthService.shared.userId else {
             throw NSError(
                 domain: "FoodLogService", code: -1,
-                userInfo: [NSLocalizedDescriptionKey: "Not signed in."]
+                userInfo: [NSLocalizedDescriptionKey: String(
+                    localized: "food_log.error.not_signed_in",
+                    defaultValue: "Not signed in.",
+                    comment: "Shown when attempting to write a food log without an authenticated user"
+                )]
             )
         }
 
