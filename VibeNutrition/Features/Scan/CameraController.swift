@@ -5,9 +5,9 @@ import SwiftUI
 @MainActor
 @Observable
 final class CameraController: NSObject, AVCapturePhotoCaptureDelegate {
-    let session = AVCaptureSession()
-    private let output = AVCapturePhotoOutput()
-    private let queue = DispatchQueue(label: "vibe.camera.queue")
+    nonisolated let session = AVCaptureSession()
+    nonisolated private let output = AVCapturePhotoOutput()
+    nonisolated private let queue = DispatchQueue(label: "vibe.camera.queue")
 
     private(set) var isReady = false
     private(set) var permissionDenied = false

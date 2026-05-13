@@ -17,7 +17,7 @@ enum FoodScanError: LocalizedError {
     }
 }
 
-struct AnalyzedFood: Codable {
+struct AnalyzedFood: Codable, Equatable {
     let items: [FoodItem]
 
     var totals: (kcal: Int, protein: Double, carbs: Double, fat: Double) {
@@ -45,7 +45,7 @@ final class FoodScanService {
         do {
             _ = try await SupabaseService.shared.storage
                 .from("food-scans")
-                .upload(path: path, file: imageData, options: FileOptions(contentType: "image/jpeg"))
+                .upload(path, data: imageData, options: FileOptions(contentType: "image/jpeg"))
         } catch {
             throw FoodScanError.uploadFailed
         }

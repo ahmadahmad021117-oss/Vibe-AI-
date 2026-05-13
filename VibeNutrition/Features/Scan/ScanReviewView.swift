@@ -66,10 +66,10 @@ struct ScanReviewView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Looks like…")
-                .font(Theme.Type.caption)
+                .font(Theme.Typography.caption)
                 .foregroundStyle(Theme.Palette.textMuted)
             Text("\(items.count) item\(items.count == 1 ? "" : "s")")
-                .font(Theme.Type.h2)
+                .font(Theme.Typography.h2)
                 .foregroundStyle(Theme.Palette.text)
         }
     }
@@ -79,10 +79,10 @@ struct ScanReviewView: View {
         return HStack(alignment: .center, spacing: Theme.Spacing.md) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Total")
-                    .font(Theme.Type.caption)
+                    .font(Theme.Typography.caption)
                     .foregroundStyle(Theme.Palette.textMuted)
                 Text("\(t.kcal) kcal")
-                    .font(Theme.Type.h2)
+                    .font(Theme.Typography.h2)
                     .foregroundStyle(Theme.Palette.text)
             }
             Spacer()
@@ -99,10 +99,10 @@ struct ScanReviewView: View {
     private func macroTotal(_ label: String, grams: Double) -> some View {
         VStack(alignment: .center, spacing: 2) {
             Text(label)
-                .font(Theme.Type.caption)
+                .font(Theme.Typography.caption)
                 .foregroundStyle(Theme.Palette.textMuted)
             Text("\(Int(grams.rounded()))g")
-                .font(Theme.Type.bodyBold)
+                .font(Theme.Typography.bodyBold)
                 .foregroundStyle(Theme.Palette.text)
         }
         .frame(minWidth: 36)
@@ -174,11 +174,11 @@ private struct FoodItemRow: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             HStack {
                 Text(item.name.capitalized)
-                    .font(Theme.Type.bodyBold)
+                    .font(Theme.Typography.bodyBold)
                     .foregroundStyle(Theme.Palette.text)
                 Spacer()
                 Text("\(Int(item.grams.rounded()))g")
-                    .font(Theme.Type.bodyBold)
+                    .font(Theme.Typography.bodyBold)
                     .foregroundStyle(Theme.Palette.accent)
                     .contentTransition(.numericText(value: item.grams))
             }
@@ -188,17 +188,17 @@ private struct FoodItemRow: View {
 
             HStack(spacing: Theme.Spacing.md) {
                 Text("\(item.kcal) kcal")
-                    .font(Theme.Type.caption)
+                    .font(Theme.Typography.caption)
                     .foregroundStyle(Theme.Palette.textMuted)
                 Spacer()
                 Text("P \(Int(item.proteinG.rounded()))g")
-                    .font(Theme.Type.caption)
+                    .font(Theme.Typography.caption)
                     .foregroundStyle(Theme.Palette.textMuted)
                 Text("C \(Int(item.carbsG.rounded()))g")
-                    .font(Theme.Type.caption)
+                    .font(Theme.Typography.caption)
                     .foregroundStyle(Theme.Palette.textMuted)
                 Text("F \(Int(item.fatG.rounded()))g")
-                    .font(Theme.Type.caption)
+                    .font(Theme.Typography.caption)
                     .foregroundStyle(Theme.Palette.textMuted)
             }
         }

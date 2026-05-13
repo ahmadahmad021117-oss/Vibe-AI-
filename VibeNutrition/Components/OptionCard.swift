@@ -21,11 +21,11 @@ struct OptionCard: View {
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(Theme.Type.bodyBold)
+                        .font(Theme.Typography.bodyBold)
                         .foregroundStyle(Theme.Palette.text)
                     if let subtitle {
                         Text(subtitle)
-                            .font(Theme.Type.caption)
+                            .font(Theme.Typography.caption)
                             .foregroundStyle(Theme.Palette.textMuted)
                     }
                 }

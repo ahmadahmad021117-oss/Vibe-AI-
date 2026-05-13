@@ -23,10 +23,10 @@ struct AuthGateView: View {
                         .font(.system(size: 48, weight: .heavy))
                         .foregroundStyle(Theme.Gradients.accent)
                     Text("Welcome to Vibe")
-                        .font(Theme.Type.h1)
+                        .font(Theme.Typography.h1)
                         .foregroundStyle(Theme.Palette.text)
                     Text("Your AI nutrition coach.")
-                        .font(Theme.Type.body)
+                        .font(Theme.Typography.body)
                         .foregroundStyle(Theme.Palette.textMuted)
                 }
 
@@ -48,7 +48,7 @@ struct AuthGateView: View {
 
                 if let error {
                     Text(error)
-                        .font(Theme.Type.caption)
+                        .font(Theme.Typography.caption)
                         .foregroundStyle(Theme.Palette.danger)
                 }
 

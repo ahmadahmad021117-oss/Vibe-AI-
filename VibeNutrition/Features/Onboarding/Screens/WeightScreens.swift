@@ -55,11 +55,11 @@ private struct WeightEntry: View {
 
             HStack(alignment: .lastTextBaseline, spacing: 6) {
                 Text(formattedDisplay)
-                    .font(Theme.Type.numeralXL)
+                    .font(Theme.Typography.numeralXL)
                     .foregroundStyle(Theme.Palette.text)
                     .contentTransition(.numericText(value: displayValue))
                 Text(unitsPref == .metric ? "kg" : "lb")
-                    .font(Theme.Type.h3)
+                    .font(Theme.Typography.h3)
                     .foregroundStyle(Theme.Palette.textMuted)
             }
             .frame(maxWidth: .infinity)
@@ -101,7 +101,7 @@ private struct WeightEntry: View {
                     unitsPref = unit
                 } label: {
                     Text(unit.label)
-                        .font(Theme.Type.bodyBold)
+                        .font(Theme.Typography.bodyBold)
                         .foregroundStyle(unitsPref == unit ? Theme.Palette.bg : Theme.Palette.textMuted)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)

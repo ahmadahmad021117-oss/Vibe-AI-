@@ -1,6 +1,6 @@
 import Foundation
 
-enum OnboardingStep: Int, CaseIterable, Identifiable {
+enum OnboardingStep: Int, CaseIterable, Identifiable, Codable {
     case goal = 0
     case currentWeight
     case goalWeight

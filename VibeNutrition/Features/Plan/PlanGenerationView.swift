@@ -27,12 +27,12 @@ struct PlanGenerationView: View {
 
                 VStack(spacing: Theme.Spacing.md) {
                     Text("Building your nutrition plan")
-                        .font(Theme.Type.h2)
+                        .font(Theme.Typography.h2)
                         .foregroundStyle(Theme.Palette.text)
                         .multilineTextAlignment(.center)
 
                     Text(generator.stage.rawValue)
-                        .font(Theme.Type.body)
+                        .font(Theme.Typography.body)
                         .foregroundStyle(Theme.Palette.textMuted)
                         .multilineTextAlignment(.center)
                         .id(generator.stage) // re-animate when text changes
@@ -50,7 +50,7 @@ struct PlanGenerationView: View {
                     .padding(.horizontal, Theme.Spacing.lg)
                     if let msg = generator.errorMessage {
                         Text(msg)
-                            .font(Theme.Type.caption)
+                            .font(Theme.Typography.caption)
                             .foregroundStyle(Theme.Palette.danger)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, Theme.Spacing.lg)

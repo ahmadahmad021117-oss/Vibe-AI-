@@ -19,7 +19,7 @@ struct ManualEntrySheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Theme.Spacing.md) {
                     Text("Add a meal manually")
-                        .font(Theme.Type.h2)
+                        .font(Theme.Typography.h2)
                         .foregroundStyle(Theme.Palette.text)
 
                     field("Name", value: $name)
@@ -33,7 +33,7 @@ struct ManualEntrySheet: View {
 
                     if let error {
                         Text(error)
-                            .font(Theme.Type.caption)
+                            .font(Theme.Typography.caption)
                             .foregroundStyle(Theme.Palette.danger)
                     }
 
@@ -53,7 +53,7 @@ struct ManualEntrySheet: View {
                        keyboard: UIKeyboardType = .default) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label)
-                .font(Theme.Type.caption)
+                .font(Theme.Typography.caption)
                 .foregroundStyle(Theme.Palette.textMuted)
             TextField("", text: value)
                 .keyboardType(keyboard)

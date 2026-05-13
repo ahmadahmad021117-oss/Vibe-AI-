@@ -21,10 +21,10 @@ struct HeightScreen: View {
 
                 HStack(alignment: .lastTextBaseline, spacing: 6) {
                     Text(displayValue)
-                        .font(Theme.Type.numeralXL)
+                        .font(Theme.Typography.numeralXL)
                         .foregroundStyle(Theme.Palette.text)
                     Text(state.unitsPref == .metric ? "cm" : "")
-                        .font(Theme.Type.h3)
+                        .font(Theme.Typography.h3)
                         .foregroundStyle(Theme.Palette.textMuted)
                 }
 

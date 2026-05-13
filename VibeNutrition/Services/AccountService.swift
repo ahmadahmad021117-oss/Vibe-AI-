@@ -11,7 +11,7 @@ final class AccountService {
     func deleteAccount() async throws {
         try await SupabaseService.shared.functions
             .invoke("delete-account", options: FunctionInvokeOptions(body: [:] as [String: String]))
-        try? await PurchaseService.shared.logOut()
+        await PurchaseService.shared.logOut()
         try await AuthService.shared.signOut()
     }
 
