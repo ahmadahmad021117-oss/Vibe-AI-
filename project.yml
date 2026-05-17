@@ -5,6 +5,11 @@ options:
     iOS: "17.0"
   createIntermediateGroups: true
   defaultConfig: Debug
+  # Pin generated project format so it can be opened by Xcode 15.4 (CI).
+  # Newer xcodegen versions otherwise emit format 77, which only Xcode 16+ reads.
+  # objectVersion 60 = Xcode 15. (56 = Xcode 14, 70 = Xcode 16.)
+  xcodeVersion: "15.4"
+  objectVersion: 60
 settings:
   base:
     SWIFT_VERSION: "5.9"
