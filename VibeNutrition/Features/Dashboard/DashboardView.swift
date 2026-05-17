@@ -157,7 +157,12 @@ struct DashboardView: View {
         }
         .padding(.top, Theme.Spacing.xs)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(nutrientPage.title) tab \(NutrientPage.allCases.firstIndex(of: nutrientPage)! + 1) of \(NutrientPage.allCases.count)")
+        .accessibilityLabel(pageIndicatorAccessibilityLabel)
+    }
+
+    private var pageIndicatorAccessibilityLabel: String {
+        let position = (NutrientPage.allCases.firstIndex(of: nutrientPage) ?? 0) + 1
+        return "\(nutrientPage.title) tab \(position) of \(NutrientPage.allCases.count)"
     }
 
     private var macrosCard: some View {
@@ -407,4 +412,3 @@ private struct LogRow: View {
         return f.string(from: log.loggedAt)
     }
 }
-

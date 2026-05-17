@@ -53,7 +53,9 @@ struct ProfileView: View {
                        Task { await deleteAccount() }
                    }
                },
-               message: { Text("This permanently removes your profile, logs, weights, scans, and subscription record. It cannot be undone.") })
+               message: {
+                   Text("This permanently removes your profile, logs, weights, scans, and subscription record. It cannot be undone.")
+               })
         .alert("Error", isPresented: .constant(error != nil), actions: {
             Button("OK") { error = nil }
         }, message: { Text(error ?? "") })

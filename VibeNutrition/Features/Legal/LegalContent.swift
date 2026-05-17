@@ -3,7 +3,6 @@ import Foundation
 /// Static, in-app legal copy. Reviewed against the iOS schema + edge functions actually shipped.
 /// Replace `[COMPANY_NAME]` and `[CONTACT_EMAIL]` with the legal entity owning VibeCal before launch.
 enum LegalContent {
-
     static let appName = "VibeCal"
     static let companyPlaceholder = "[COMPANY_NAME]"
     static let contactPlaceholder = "[CONTACT_EMAIL]"
