@@ -7,6 +7,7 @@ struct DashboardView: View {
     @State private var showingWeightCheckIn = false
     @State private var showingProfile = false
     @State private var showingWeekly = false
+    @State private var nutrientPage: NutrientPage = .macros
 
     var body: some View {
         ZStack {
@@ -16,7 +17,7 @@ struct DashboardView: View {
                 VStack(spacing: Theme.Spacing.lg) {
                     header
                     ringCard
-                    macroBars
+                    nutrientPager
                     actionsRow
                     todaySection
                     Spacer(minLength: 80)
@@ -129,30 +130,109 @@ struct DashboardView: View {
         return "\(vm.kcalRemaining) of \(t.kcal) kilocalories left"
     }
 
-    private var macroBars: some View {
-        VStack(spacing: Theme.Spacing.sm) {
-            macroBar(label: "Protein",
-                     consumed: vm.proteinConsumed, target: Double(vm.target?.proteinG ?? 0),
-                     color: Theme.Palette.accent)
-            macroBar(label: "Carbs",
-                     consumed: vm.carbsConsumed, target: Double(vm.target?.carbsG ?? 0),
-                     color: Theme.Palette.accentDeep)
-            macroBar(label: "Fat",
-                     consumed: vm.fatConsumed, target: Double(vm.target?.fatG ?? 0),
-                     color: Theme.Palette.accentAlt)
+    /// Horizontal pager: Macros (default) → Vitamins → Minerals.
+    /// Swipe right-to-left to advance to the next category.
+    private var nutrientPager: some View {
+        VStack(spacing: Theme.Spacing.xs) {
+            TabView(selection: $nutrientPage) {
+                macrosCard.tag(NutrientPage.macros)
+                vitaminsCard.tag(NutrientPage.vitamins)
+                mineralsCard.tag(NutrientPage.minerals)
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .frame(height: 180)
+
+            pageIndicator
         }
-        .padding(Theme.Spacing.md)
-        .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))
     }
 
-    private func macroBar(label: String, consumed: Double, target: Double, color: Color) -> some View {
+    private var pageIndicator: some View {
+        HStack(spacing: 8) {
+            ForEach(NutrientPage.allCases) { page in
+                Capsule()
+                    .fill(nutrientPage == page ? Theme.Palette.accent : Theme.Palette.border)
+                    .frame(width: nutrientPage == page ? 20 : 8, height: 6)
+                    .animation(Theme.Motion.spring, value: nutrientPage)
+            }
+        }
+        .padding(.top, Theme.Spacing.xs)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(nutrientPage.title) tab \(NutrientPage.allCases.firstIndex(of: nutrientPage)! + 1) of \(NutrientPage.allCases.count)")
+    }
+
+    private var macrosCard: some View {
+        nutrientCard(title: "Macros") {
+            nutrientBar(label: "Protein",
+                        consumed: vm.proteinConsumed, target: Double(vm.target?.proteinG ?? 0),
+                        unit: "g", color: Theme.Palette.accent)
+            nutrientBar(label: "Carbs",
+                        consumed: vm.carbsConsumed, target: Double(vm.target?.carbsG ?? 0),
+                        unit: "g", color: Theme.Palette.accentDeep)
+            nutrientBar(label: "Fat",
+                        consumed: vm.fatConsumed, target: Double(vm.target?.fatG ?? 0),
+                        unit: "g", color: Theme.Palette.accentAlt)
+        }
+    }
+
+    private var vitaminsCard: some View {
+        let consumed = vm.microsConsumed
+        let target = vm.microsTarget
+        return nutrientCard(title: "Vitamins") {
+            nutrientBar(label: "Vitamin D",
+                        consumed: consumed.vitaminDMcg ?? 0, target: target.vitaminDMcg ?? 0,
+                        unit: "μg", color: Theme.Palette.accent, fractionDigits: 1)
+            nutrientBar(label: "Vitamin B12",
+                        consumed: consumed.vitaminB12Mcg ?? 0, target: target.vitaminB12Mcg ?? 0,
+                        unit: "μg", color: Theme.Palette.accentDeep, fractionDigits: 1)
+            nutrientBar(label: "Vitamin C",
+                        consumed: consumed.vitaminCMg ?? 0, target: target.vitaminCMg ?? 0,
+                        unit: "mg", color: Theme.Palette.accentAlt)
+        }
+    }
+
+    private var mineralsCard: some View {
+        let consumed = vm.microsConsumed
+        let target = vm.microsTarget
+        return nutrientCard(title: "Minerals") {
+            nutrientBar(label: "Magnesium",
+                        consumed: consumed.magnesiumMg ?? 0, target: target.magnesiumMg ?? 0,
+                        unit: "mg", color: Theme.Palette.accent)
+            nutrientBar(label: "Iron",
+                        consumed: consumed.ironMg ?? 0, target: target.ironMg ?? 0,
+                        unit: "mg", color: Theme.Palette.accentDeep, fractionDigits: 1)
+            nutrientBar(label: "Zinc",
+                        consumed: consumed.zincMg ?? 0, target: target.zincMg ?? 0,
+                        unit: "mg", color: Theme.Palette.accentAlt, fractionDigits: 1)
+        }
+    }
+
+    @ViewBuilder
+    private func nutrientCard<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+            HStack {
+                Text(title)
+                    .font(Theme.Type.caption)
+                    .foregroundStyle(Theme.Palette.textMuted)
+                Spacer()
+            }
+            content()
+        }
+        .padding(Theme.Spacing.md)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))
+        .padding(.horizontal, 2)
+    }
+
+    private func nutrientBar(label: String, consumed: Double, target: Double,
+                             unit: String, color: Color,
+                             fractionDigits: Int = 0) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text(label)
                     .font(Theme.Type.caption)
                     .foregroundStyle(Theme.Palette.textMuted)
                 Spacer()
-                Text("\(Int(consumed.rounded())) / \(Int(target.rounded())) g")
+                Text("\(format(consumed, digits: fractionDigits)) / \(format(target, digits: fractionDigits)) \(unit)")
                     .font(Theme.Type.caption)
                     .foregroundStyle(Theme.Palette.text)
             }
@@ -167,7 +247,13 @@ struct DashboardView: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label)
-        .accessibilityValue("\(Int(consumed.rounded())) of \(Int(target.rounded())) grams")
+        .accessibilityValue("\(format(consumed, digits: fractionDigits)) of \(format(target, digits: fractionDigits)) \(unit)")
+    }
+
+    private func format(_ value: Double, digits: Int) -> String {
+        digits <= 0
+            ? "\(Int(value.rounded()))"
+            : String(format: "%.\(digits)f", value)
     }
 
     private var actionsRow: some View {
@@ -257,6 +343,21 @@ struct DashboardView: View {
         let f = DateFormatter()
         f.dateFormat = "EEEE, MMM d"
         return f.string(from: Date())
+    }
+}
+
+/// Pages in the home-screen nutrient pager. Swipe right-to-left walks `macros → vitamins → minerals`.
+enum NutrientPage: Int, CaseIterable, Identifiable {
+    case macros
+    case vitamins
+    case minerals
+    var id: Int { rawValue }
+    var title: String {
+        switch self {
+        case .macros:   return "Macros"
+        case .vitamins: return "Vitamins"
+        case .minerals: return "Minerals"
+        }
     }
 }
 

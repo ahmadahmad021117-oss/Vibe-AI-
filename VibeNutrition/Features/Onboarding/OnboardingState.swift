@@ -11,6 +11,7 @@ final class OnboardingState: Codable {
     var unitsPref: UnitsPref = .metric
     var currentWeightKg: Double?
     var goalWeightKg: Double?
+    var pace: Pace = .medium
     var age: Int?
     var sex: SexType?
     var heightCm: Double?
@@ -27,7 +28,7 @@ final class OnboardingState: Codable {
 
     // MARK: - Codable (manual, because Observation property wrappers don't auto-synthesize)
     enum CodingKeys: String, CodingKey {
-        case goal, unitsPref, currentWeightKg, goalWeightKg, age, sex, heightCm,
+        case goal, unitsPref, currentWeightKg, goalWeightKg, pace, age, sex, heightCm,
              healthSyncEnabled, trainingDaysPerWeek, mainFocus, mealsPerDay,
              dietaryPref, mealSuggestionsEnabled, notificationPref, step
     }
@@ -40,6 +41,7 @@ final class OnboardingState: Codable {
         unitsPref = try c.decodeIfPresent(UnitsPref.self, forKey: .unitsPref) ?? .metric
         currentWeightKg = try c.decodeIfPresent(Double.self, forKey: .currentWeightKg)
         goalWeightKg = try c.decodeIfPresent(Double.self, forKey: .goalWeightKg)
+        pace = try c.decodeIfPresent(Pace.self, forKey: .pace) ?? .medium
         age = try c.decodeIfPresent(Int.self, forKey: .age)
         sex = try c.decodeIfPresent(SexType.self, forKey: .sex)
         heightCm = try c.decodeIfPresent(Double.self, forKey: .heightCm)
@@ -59,6 +61,7 @@ final class OnboardingState: Codable {
         try c.encode(unitsPref, forKey: .unitsPref)
         try c.encodeIfPresent(currentWeightKg, forKey: .currentWeightKg)
         try c.encodeIfPresent(goalWeightKg, forKey: .goalWeightKg)
+        try c.encode(pace, forKey: .pace)
         try c.encodeIfPresent(age, forKey: .age)
         try c.encodeIfPresent(sex, forKey: .sex)
         try c.encodeIfPresent(heightCm, forKey: .heightCm)
@@ -84,6 +87,7 @@ final class OnboardingState: Codable {
         case .goal: return goal != nil
         case .currentWeight: return currentWeightKg != nil
         case .goalWeight: return goalWeightKg != nil
+        case .pace: return true  // pace defaults to .medium so always valid
         case .age: return age != nil
         case .sex: return sex != nil
         case .height: return heightCm != nil
@@ -149,7 +153,8 @@ final class OnboardingState: Codable {
             mainFocus: mainFocus,
             mealSuggestionsEnabled: mealSuggestionsEnabled,
             notificationPref: notificationPref,
-            healthSyncEnabled: healthSyncEnabled
+            healthSyncEnabled: healthSyncEnabled,
+            pace: pace
         )
         do {
             try await ProfileService.shared.upsert(patch)

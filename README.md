@@ -1,6 +1,9 @@
-# Vibe Nutrition — iOS
+# VibeCal — iOS
 
-An AI-powered calorie & macro coach for fitness-focused users (16–25). Native iOS in Swift + SwiftUI, backed by Supabase.
+An AI-powered calorie & macro coach for fitness-focused users. Native iOS in Swift + SwiftUI, backed by Supabase.
+
+> Internal Xcode target name is `VibeNutrition` for backward compatibility with the existing
+> bundle ID (`com.vibe.nutrition`) and CI pipeline. The user-facing display name is **VibeCal**.
 
 > **Phase 1 status:** scaffold + onboarding flow ✅
 > **Phase 2 status:** TDEE engine + plan generation + plan preview ✅

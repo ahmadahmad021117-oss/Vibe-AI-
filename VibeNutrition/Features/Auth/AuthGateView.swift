@@ -22,10 +22,10 @@ struct AuthGateView: View {
                     Image(systemName: "bolt.fill")
                         .font(.system(size: 48, weight: .heavy))
                         .foregroundStyle(Theme.Gradients.accent)
-                    Text("Welcome to Vibe")
+                    Text("Welcome to VibeCal")
                         .font(Theme.Type.h1)
                         .foregroundStyle(Theme.Palette.text)
-                    Text("Your AI nutrition coach.")
+                    Text("Your AI calorie coach.")
                         .font(Theme.Type.body)
                         .foregroundStyle(Theme.Palette.textMuted)
                 }

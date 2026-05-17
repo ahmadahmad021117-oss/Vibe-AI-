@@ -57,7 +57,7 @@ final class AccountService {
         let data = try encoder.encode(payload)
 
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("vibe-export-\(Int(Date().timeIntervalSince1970)).json")
+            .appendingPathComponent("vibecal-export-\(Int(Date().timeIntervalSince1970)).json")
         try data.write(to: url)
         return url
     }

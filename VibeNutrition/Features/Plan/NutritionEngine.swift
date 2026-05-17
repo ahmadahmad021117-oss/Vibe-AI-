@@ -14,6 +14,8 @@ enum NutritionEngine {
         var avgSteps: Int?        // optional from HealthKit
         var goal: GoalType
         var mainFocus: MainFocus?
+        /// User-selected pace. Optional for backward compat — defaults to .medium when nil.
+        var pace: Pace?
     }
 
     // MARK: - Outputs
@@ -82,24 +84,60 @@ enum NutritionEngine {
     /// Calorie deficit/surplus depending on goal, capped at ±20% TDEE.
     /// Returns (kcalTarget, weeklyDeltaKg).
     /// 7700 kcal ≈ 1 kg body mass (rough but standard).
+    /// Kept for back-compat / tests; uses a fixed pace per goal.
     static func goalAdjustedKcal(tdee: Double, goal: GoalType) -> (kcal: Int, weeklyDeltaKg: Double) {
-        let cap = 0.20
-        let pct: Double = {
+        let defaultPace: Pace? = {
             switch goal {
-            case .loseWeight:    return -0.20
-            case .gainWeight:    return  0.15
-            case .buildMuscle:   return  0.10
-            case .maintain:      return  0.0
-            case .recomp:        return -0.05
-            case .improveHealth: return  0.0
+            case .loseWeight, .gainWeight, .buildMuscle: return .medium
+            case .recomp:                                return .slow
+            case .maintain, .improveHealth:              return nil
             }
         }()
-        let clamped = max(-cap, min(cap, pct))
-        let target = tdee * (1 + clamped)
-        let dailyDelta = target - tdee
-        let weeklyKcal = dailyDelta * 7
-        let weeklyKg = weeklyKcal / 7700.0
-        return (Int(target.rounded()), weeklyKg)
+        return goalAdjustedKcal(tdee: tdee, goal: goal, pace: defaultPace)
+    }
+
+    /// Calorie deficit/surplus driven by the user's selected pace.
+    /// Falls back to a sensible default per goal when `pace` is nil.
+    /// Cap at ±20 % TDEE so even "fast" stays sane for small users.
+    /// Maintain / improveHealth / recomp ignore pace by design.
+    static func goalAdjustedKcal(
+        tdee: Double,
+        goal: GoalType,
+        pace: Pace?
+    ) -> (kcal: Int, weeklyDeltaKg: Double) {
+        let cap = 0.20
+
+        // Goals that are pace-insensitive use a fixed percentage adjustment.
+        // (Recomp is intentionally mild; maintain / improveHealth are zero.)
+        if let fixedPct = fixedPercentageFor(goal: goal) {
+            let target = tdee * (1 + fixedPct)
+            let weeklyKg = ((target - tdee) * 7) / 7700.0
+            return (Int(target.rounded()), weeklyKg)
+        }
+
+        let effectivePace = pace ?? .medium
+        let direction: Double = (goal == .loseWeight) ? -1 : 1
+        let weeklyKg = effectivePace.weeklyKg * direction
+        let dailyDeltaKcal = (weeklyKg * 7700) / 7.0
+        var target = tdee + dailyDeltaKcal
+        // Clamp to ±20 % TDEE.
+        let lo = tdee * (1 - cap)
+        let hi = tdee * (1 + cap)
+        target = min(hi, max(lo, target))
+        // Recompute actual weekly delta after clamping.
+        let actualDailyDelta = target - tdee
+        let actualWeeklyKg = (actualDailyDelta * 7) / 7700.0
+        return (Int(target.rounded()), actualWeeklyKg)
+    }
+
+    /// Returns the fixed percentage adjustment for goals that don't honor pace.
+    /// Returns nil for goals (lose / gain / build) that scale with pace.
+    private static func fixedPercentageFor(goal: GoalType) -> Double? {
+        switch goal {
+        case .maintain, .improveHealth: return  0.0
+        case .recomp:                   return -0.05   // mild deficit, unchanged from v1
+        case .loseWeight, .gainWeight, .buildMuscle: return nil
+        }
     }
 
     /// Protein g/kg by goal — priority macro.
@@ -154,7 +192,9 @@ enum NutritionEngine {
             avgSteps: inputs.avgSteps
         )
         let tdeeKcal = tdee(bmr: bmr, multiplier: mult)
-        let (kcalTarget, weeklyDelta) = goalAdjustedKcal(tdee: tdeeKcal, goal: inputs.goal)
+        let (kcalTarget, weeklyDelta) = goalAdjustedKcal(
+            tdee: tdeeKcal, goal: inputs.goal, pace: inputs.pace
+        )
         let m = macros(kcalTarget: kcalTarget, weightKg: inputs.weightKg, goal: inputs.goal)
 
         return Result(
@@ -167,5 +207,82 @@ enum NutritionEngine {
             fatG: m.fatG,
             weeklyDeltaKg: weeklyDelta
         )
+    }
+
+    // MARK: - Weight projection
+
+    /// One point on the projection chart.
+    struct ProjectionPoint: Hashable {
+        var weekIndex: Int
+        var weightKg: Double
+        var date: Date
+    }
+
+    /// Project a straight-line trajectory from `currentKg` toward `goalKg` at the given pace.
+    /// - If the goal direction conflicts with the goal type (e.g. user picked "lose weight"
+    ///   but goalKg > currentKg) the engine ignores the conflict and projects toward `goalKg`.
+    /// - Returns at least the starting point. Empty pace / equal weights → just the start.
+    /// - `maxWeeks` keeps the chart bounded for very small paces or unreachable goals.
+    static func projectWeeks(
+        currentKg: Double,
+        goalKg: Double,
+        pace: Pace,
+        maxWeeks: Int = 104,
+        startingFrom start: Date = Date()
+    ) -> [ProjectionPoint] {
+        let diff = goalKg - currentKg
+        if abs(diff) < 0.05 {
+            return [ProjectionPoint(weekIndex: 0, weightKg: currentKg, date: start)]
+        }
+        let direction: Double = diff > 0 ? 1 : -1
+        let perWeek = pace.weeklyKg * direction
+        let weeksToGoal = Int(ceil(abs(diff) / pace.weeklyKg))
+        let weeks = min(maxWeeks, max(1, weeksToGoal))
+
+        var points: [ProjectionPoint] = []
+        for week in 0...weeks {
+            let projected = currentKg + perWeek * Double(week)
+            let clamped: Double
+            if direction > 0 {
+                clamped = min(goalKg, projected)
+            } else {
+                clamped = max(goalKg, projected)
+            }
+            let date = Calendar.current.date(byAdding: .weekOfYear, value: week, to: start) ?? start
+            points.append(ProjectionPoint(weekIndex: week, weightKg: clamped, date: date))
+        }
+        return points
+    }
+
+    /// Weeks (rounded up) to reach `goalKg` from `currentKg` at the given pace.
+    /// Returns 0 if the weights are essentially equal.
+    static func weeksToReach(currentKg: Double, goalKg: Double, pace: Pace) -> Int {
+        let diff = abs(goalKg - currentKg)
+        if diff < 0.05 { return 0 }
+        return max(1, Int(ceil(diff / pace.weeklyKg)))
+    }
+
+    /// Goal-realism check, called by the projection view.
+    /// "Unhealthy" if the user is targeting an underweight BMI (<18.5) or an obese-class-II BMI (>35).
+    /// Returns nil when the goal is sensible.
+    static func goalRealismWarning(
+        heightCm: Double?,
+        goalKg: Double,
+        currentKg: Double
+    ) -> String? {
+        guard let heightCm, heightCm > 0 else { return nil }
+        let heightM = heightCm / 100
+        let bmi = goalKg / (heightM * heightM)
+        if bmi < 18.5 {
+            return "This goal puts your BMI below 18.5 (underweight)."
+        }
+        if bmi > 35 {
+            return "This goal puts your BMI above 35 (severe obesity range)."
+        }
+        // Also flag very large absolute swings, regardless of BMI.
+        if abs(goalKg - currentKg) > 40 {
+            return "That's a very large change — please consult a clinician."
+        }
+        return nil
     }
 }

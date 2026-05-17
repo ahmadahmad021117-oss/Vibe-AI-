@@ -13,12 +13,16 @@ struct Profile: Codable, Identifiable, Hashable {
     var mealSuggestionsEnabled: Bool
     var notificationPref: NotificationPref
     var healthSyncEnabled: Bool
+    var pace: Pace?
+    var marketingEmail: String?
+    var marketingEmailOptIn: Bool?
+    var marketingConsentAt: Date?
     var onboardingCompletedAt: Date?
     var createdAt: Date
     var updatedAt: Date
 
     enum CodingKeys: String, CodingKey {
-        case id, age, sex
+        case id, age, sex, pace
         case heightCm = "height_cm"
         case dietaryPref = "dietary_pref"
         case unitsPref = "units_pref"
@@ -28,6 +32,9 @@ struct Profile: Codable, Identifiable, Hashable {
         case mealSuggestionsEnabled = "meal_suggestions_enabled"
         case notificationPref = "notification_pref"
         case healthSyncEnabled = "health_sync_enabled"
+        case marketingEmail = "marketing_email"
+        case marketingEmailOptIn = "marketing_email_opt_in"
+        case marketingConsentAt = "marketing_consent_at"
         case onboardingCompletedAt = "onboarding_completed_at"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
@@ -97,11 +104,37 @@ struct FoodItem: Codable, Hashable {
     var fatG: Double
     var confidence: Double?
 
+    // Per-item micronutrients (optional — older scans decode with nils).
+    var vitaminDMcg: Double?
+    var vitaminB12Mcg: Double?
+    var vitaminCMg: Double?
+    var magnesiumMg: Double?
+    var ironMg: Double?
+    var zincMg: Double?
+
     enum CodingKeys: String, CodingKey {
         case name, grams, kcal, confidence
         case proteinG = "protein_g"
         case carbsG = "carbs_g"
         case fatG = "fat_g"
+        case vitaminDMcg   = "vitamin_d_mcg"
+        case vitaminB12Mcg = "vitamin_b12_mcg"
+        case vitaminCMg    = "vitamin_c_mg"
+        case magnesiumMg   = "magnesium_mg"
+        case ironMg        = "iron_mg"
+        case zincMg        = "zinc_mg"
+    }
+
+    /// Convenience view of all micronutrients in one struct.
+    var micros: Micronutrients {
+        Micronutrients(
+            vitaminDMcg: vitaminDMcg,
+            vitaminB12Mcg: vitaminB12Mcg,
+            vitaminCMg: vitaminCMg,
+            magnesiumMg: magnesiumMg,
+            ironMg: ironMg,
+            zincMg: zincMg
+        )
     }
 }
 
@@ -117,6 +150,15 @@ struct FoodLog: Codable, Identifiable, Hashable {
     var source: LogSource
     var loggedAt: Date
 
+    // Micronutrient totals stored on the row for fast aggregation.
+    // Nil for legacy rows logged before the micronutrient pipeline.
+    var vitaminDMcg: Double?
+    var vitaminB12Mcg: Double?
+    var vitaminCMg: Double?
+    var magnesiumMg: Double?
+    var ironMg: Double?
+    var zincMg: Double?
+
     enum CodingKeys: String, CodingKey {
         case id
         case userId = "user_id"
@@ -128,6 +170,29 @@ struct FoodLog: Codable, Identifiable, Hashable {
         case fatG = "fat_g"
         case source
         case loggedAt = "logged_at"
+        case vitaminDMcg   = "vitamin_d_mcg"
+        case vitaminB12Mcg = "vitamin_b12_mcg"
+        case vitaminCMg    = "vitamin_c_mg"
+        case magnesiumMg   = "magnesium_mg"
+        case ironMg        = "iron_mg"
+        case zincMg        = "zinc_mg"
+    }
+
+    /// Convenience: micronutrient totals on this log.
+    /// Prefers the row columns; falls back to summing items if they are nil.
+    var micros: Micronutrients {
+        if vitaminDMcg != nil || vitaminB12Mcg != nil || vitaminCMg != nil
+            || magnesiumMg != nil || ironMg != nil || zincMg != nil {
+            return Micronutrients(
+                vitaminDMcg: vitaminDMcg,
+                vitaminB12Mcg: vitaminB12Mcg,
+                vitaminCMg: vitaminCMg,
+                magnesiumMg: magnesiumMg,
+                ironMg: ironMg,
+                zincMg: zincMg
+            )
+        }
+        return Micronutrients.sum(items.map { $0.micros })
     }
 }
 

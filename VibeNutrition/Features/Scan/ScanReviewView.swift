@@ -110,8 +110,11 @@ struct ScanReviewView: View {
 
     private var itemsList: some View {
         VStack(spacing: Theme.Spacing.sm) {
-            ForEach($items, id: \.name) { $item in
-                FoodItemRow(item: $item)
+            ForEach(Array($items.enumerated()), id: \.offset) { index, $item in
+                let original = initialFood.items.indices.contains(index)
+                    ? initialFood.items[index]
+                    : item
+                FoodItemRow(item: $item, original: original)
             }
         }
     }
@@ -169,6 +172,26 @@ struct ScanReviewView: View {
 
 private struct FoodItemRow: View {
     @Binding var item: FoodItem
+    /// The original (un-edited) item from the AI scan. The slider scales relative to this,
+    /// so successive adjustments do not compound.
+    let original: FoodItem
+
+    /// Hard caps so a user can never scroll into nonsense values.
+    /// Range derives from the ORIGINAL grams, not the current grams.
+    private static let maxKcalPerItem: Int = 10_000
+    private static let maxGramsPerItem: Double = 5_000
+
+    private var sliderRange: ClosedRange<Double> {
+        // Allow trimming down to a small portion or expanding up to 4× the original,
+        // clamped to a sane minimum of 10g and an upper bound that respects both
+        // an absolute gram cap AND the per-item 10,000-kcal cap.
+        let lower = max(10, original.grams * 0.25)
+        let kcalCapGrams = original.kcal > 0
+            ? Double(Self.maxKcalPerItem) / Double(original.kcal) * original.grams
+            : Self.maxGramsPerItem
+        let upper = min(Self.maxGramsPerItem, max(original.grams * 4, 200), kcalCapGrams)
+        return lower...max(lower + 1, upper)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
@@ -183,7 +206,7 @@ private struct FoodItemRow: View {
                     .contentTransition(.numericText(value: item.grams))
             }
 
-            Slider(value: gramsBinding, in: max(10, item.grams * 0.25)...max(item.grams * 2.5, 100), step: 5)
+            Slider(value: gramsBinding, in: sliderRange, step: 5)
                 .tint(Theme.Palette.accent)
 
             HStack(spacing: Theme.Spacing.md) {
@@ -206,19 +229,31 @@ private struct FoodItemRow: View {
         .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))
     }
 
-    /// Adjust grams → scale all per-item macros proportionally relative to the original AI estimate.
+    /// Adjust grams → scale all per-item macros & micros relative to the ORIGINAL AI estimate.
+    /// Scaling relative to the original (not the current) prevents compounding to absurd values
+    /// when the user drags the slider back and forth.
     private var gramsBinding: Binding<Double> {
         Binding(
             get: { item.grams },
-            set: { newGrams in
-                guard item.grams > 0 else { return }
-                let scale = newGrams / item.grams
+            set: { rawGrams in
+                let newGrams = min(Self.maxGramsPerItem, max(0, rawGrams))
+                guard original.grams > 0 else { return }
+                let scale = newGrams / original.grams
                 Haptics.select()
                 item.grams = newGrams
-                item.kcal = Int((Double(item.kcal) * scale).rounded())
-                item.proteinG = (item.proteinG * scale * 10).rounded() / 10
-                item.carbsG = (item.carbsG * scale * 10).rounded() / 10
-                item.fatG = (item.fatG * scale * 10).rounded() / 10
+                // Recompute from original to avoid compounding; clamp kcal to 0…10000.
+                let kcal = Int((Double(original.kcal) * scale).rounded())
+                item.kcal = min(Self.maxKcalPerItem, max(0, kcal))
+                item.proteinG = max(0, (original.proteinG * scale * 10).rounded() / 10)
+                item.carbsG   = max(0, (original.carbsG   * scale * 10).rounded() / 10)
+                item.fatG     = max(0, (original.fatG     * scale * 10).rounded() / 10)
+                let scaledMicros = original.micros.scaled(by: scale)
+                item.vitaminDMcg   = scaledMicros.vitaminDMcg
+                item.vitaminB12Mcg = scaledMicros.vitaminB12Mcg
+                item.vitaminCMg    = scaledMicros.vitaminCMg
+                item.magnesiumMg   = scaledMicros.magnesiumMg
+                item.ironMg        = scaledMicros.ironMg
+                item.zincMg        = scaledMicros.zincMg
             }
         )
     }

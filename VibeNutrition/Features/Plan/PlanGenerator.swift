@@ -41,8 +41,16 @@ final class PlanGenerator {
             stage = .loadingProfile
             try await Task.sleep(for: .milliseconds(250))
 
-            let (sex, age, heightCm, weightKg, trainingDays, goal, focus, healthOn) =
-                try await resolveInputs(onboarding: onboarding)
+            let resolved = try await resolveInputs(onboarding: onboarding)
+            let sex = resolved.sex
+            let age = resolved.age
+            let heightCm = resolved.heightCm
+            let weightKg = resolved.weightKg
+            let trainingDays = resolved.trainingDaysPerWeek
+            let goal = resolved.goal
+            let focus = resolved.mainFocus
+            let healthOn = resolved.healthSyncEnabled
+            let pace = resolved.pace
 
             var avgSteps: Int? = nil
             if healthOn {
@@ -62,7 +70,8 @@ final class PlanGenerator {
                     trainingDaysPerWeek: trainingDays,
                     avgSteps: avgSteps,
                     goal: goal,
-                    mainFocus: focus
+                    mainFocus: focus,
+                    pace: pace
                 )
             )
 
@@ -73,7 +82,7 @@ final class PlanGenerator {
             self.inputs = NutritionEngine.Inputs(
                 sex: sex, age: age, heightCm: heightCm, weightKg: weightKg,
                 trainingDaysPerWeek: trainingDays, avgSteps: avgSteps,
-                goal: goal, mainFocus: focus
+                goal: goal, mainFocus: focus, pace: pace
             )
             self.result = computed
             try await TargetService.shared.writeLatest(computed, inputs: self.inputs!)
@@ -87,9 +96,19 @@ final class PlanGenerator {
 
     // MARK: - Input resolution
 
-    private func resolveInputs(onboarding: OnboardingState?) async throws -> (
-        SexType, Int, Double, Double, Int, GoalType, MainFocus?, Bool
-    ) {
+    private struct ResolvedInputs {
+        var sex: SexType
+        var age: Int
+        var heightCm: Double
+        var weightKg: Double
+        var trainingDaysPerWeek: Int
+        var goal: GoalType
+        var mainFocus: MainFocus?
+        var healthSyncEnabled: Bool
+        var pace: Pace
+    }
+
+    private func resolveInputs(onboarding: OnboardingState?) async throws -> ResolvedInputs {
         // Fresh-from-onboarding path: every required answer is in memory.
         if let o = onboarding,
            let weight = o.currentWeightKg,
@@ -98,12 +117,17 @@ final class PlanGenerator {
            let height = o.heightCm,
            let days = o.trainingDaysPerWeek,
            let goal = o.goal {
-            return (sex, age, height, weight, days, goal, o.mainFocus, o.healthSyncEnabled)
+            return ResolvedInputs(
+                sex: sex, age: age, heightCm: height, weightKg: weight,
+                trainingDaysPerWeek: days, goal: goal, mainFocus: o.mainFocus,
+                healthSyncEnabled: o.healthSyncEnabled, pace: o.pace
+            )
         }
 
         // Returning-user path: hydrate from Supabase.
         let profile = try await ProfileService.shared.fetchCurrent()
         let latestGoal = try await GoalService.shared.fetchLatest()
+        let latestWeight = try? await WeightLogService.shared.fetchLatest()
 
         guard
             let profile,
@@ -120,17 +144,14 @@ final class PlanGenerator {
         }
 
         // Weight: latest weight_log if available, else goal start weight.
-        let weight = latestGoal.startWeightKg
+        let weight = latestWeight?.weightKg ?? latestGoal.startWeightKg
 
-        return (
-            sex,
-            age,
-            height,
-            weight,
-            days,
-            latestGoal.type,
-            profile.mainFocus,
-            profile.healthSyncEnabled
+        return ResolvedInputs(
+            sex: sex, age: age, heightCm: height, weightKg: weight,
+            trainingDaysPerWeek: days, goal: latestGoal.type,
+            mainFocus: profile.mainFocus,
+            healthSyncEnabled: profile.healthSyncEnabled,
+            pace: profile.pace ?? .medium
         )
     }
 }

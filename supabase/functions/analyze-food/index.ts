@@ -15,7 +15,8 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-// Schema returned by the model (and accepted by the iOS client)
+// Schema returned by the model (and accepted by the iOS client).
+// Per-item caps clamp obvious model hallucinations.
 const FoodItemSchema = z.object({
   name: z.string().min(1).max(80),
   grams: z.number().positive().max(2000),
@@ -24,6 +25,14 @@ const FoodItemSchema = z.object({
   carbs_g: z.number().nonnegative().max(500),
   fat_g: z.number().nonnegative().max(500),
   confidence: z.number().min(0).max(1).optional(),
+  // Optional micronutrients. Units below match the iOS client (`Micronutrients`).
+  //  μg = micrograms, mg = milligrams.
+  vitamin_d_mcg:   z.number().nonnegative().max(200).optional(),
+  vitamin_b12_mcg: z.number().nonnegative().max(200).optional(),
+  vitamin_c_mg:    z.number().nonnegative().max(2000).optional(),
+  magnesium_mg:    z.number().nonnegative().max(2000).optional(),
+  iron_mg:         z.number().nonnegative().max(100).optional(),
+  zinc_mg:         z.number().nonnegative().max(100).optional(),
 });
 
 const ResponseSchema = z.object({
@@ -36,11 +45,19 @@ const RequestSchema = z.object({
 
 const SYSTEM_PROMPT = `You are a nutrition vision assistant. Given a single photo of food, identify each distinct item.
 Estimate portion size in grams as accurately as possible from visual cues (plate size, utensils, hands).
-For each item, return calories, protein, carbs, and fat in grams.
-Be conservative — under-estimate before over-estimating. Confidence reflects how sure you are (0..1).
+For each item, return calories, protein, carbs, and fat in grams, plus realistic micronutrient
+estimates (vitamin D μg, vitamin B12 μg, vitamin C mg, magnesium mg, iron mg, zinc mg) — use 0
+when a nutrient is essentially absent. Be conservative — under-estimate before over-estimating.
+Confidence reflects how sure you are (0..1).
 
 Return ONLY valid JSON matching this exact shape, no prose:
-{ "items": [ { "name": "...", "grams": 0, "kcal": 0, "protein_g": 0, "carbs_g": 0, "fat_g": 0, "confidence": 0.0 } ] }`;
+{ "items": [
+  { "name": "...", "grams": 0, "kcal": 0,
+    "protein_g": 0, "carbs_g": 0, "fat_g": 0,
+    "vitamin_d_mcg": 0, "vitamin_b12_mcg": 0, "vitamin_c_mg": 0,
+    "magnesium_mg": 0, "iron_mg": 0, "zinc_mg": 0,
+    "confidence": 0.0 }
+] }`;
 
 async function analyze(imageURL: string): Promise<unknown> {
   const apiKey = Deno.env.get('OPENAI_API_KEY');

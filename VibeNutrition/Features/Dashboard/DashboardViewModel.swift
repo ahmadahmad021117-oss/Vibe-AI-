@@ -9,6 +9,7 @@ final class DashboardViewModel {
     private(set) var streak: Int = 0
     private(set) var isLoading: Bool = true
     private(set) var errorMessage: String?
+    private(set) var profile: Profile?
 
     var kcalConsumed: Int { todayLogs.reduce(0) { $0 + $1.kcal } }
     var proteinConsumed: Double { todayLogs.reduce(0) { $0 + $1.proteinG } }
@@ -25,6 +26,16 @@ final class DashboardViewModel {
         return min(1.5, Double(kcalConsumed) / Double(t.kcal))
     }
 
+    /// Summed micronutrients across today's logs.
+    var microsConsumed: Micronutrients {
+        Micronutrients.sum(todayLogs.map { $0.micros })
+    }
+
+    /// Daily target micronutrients, derived from profile sex.
+    var microsTarget: Micronutrients {
+        DailyIntake.recommended(sex: profile?.sex)
+    }
+
     func load() async {
         isLoading = true
         defer { isLoading = false }
@@ -32,9 +43,11 @@ final class DashboardViewModel {
             async let targetTask = TargetService.shared.fetchLatest()
             async let logsTask = FoodLogService.shared.fetchToday()
             async let streakTask = StreakService.shared.currentStreak()
+            async let profileTask = ProfileService.shared.fetchCurrent()
             self.target = try await targetTask
             self.todayLogs = try await logsTask
             self.streak = try await streakTask
+            self.profile = try await profileTask
             self.errorMessage = nil
         } catch {
             self.errorMessage = error.localizedDescription

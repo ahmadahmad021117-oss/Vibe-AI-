@@ -72,6 +72,15 @@ struct RootCoordinator: View {
             }
         }
         .animation(.easeInOut(duration: Theme.Motion.base), value: destination)
+        // React to sign-out anywhere in the app (Settings → "Sign out").
+        // When the user goes from authenticated → not authenticated, snap back to the auth gate.
+        .onChange(of: auth.isAuthenticated) { _, isAuthed in
+            if !isAuthed && destination != .splash {
+                withAnimation(.easeInOut(duration: Theme.Motion.base)) {
+                    destination = .auth
+                }
+            }
+        }
     }
 
     private func bootstrap() async {

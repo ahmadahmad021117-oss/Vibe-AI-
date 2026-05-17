@@ -24,8 +24,13 @@ struct HealthSyncScreen: View {
                     systemImage: "heart.fill",
                     isSelected: state.healthSyncEnabled
                 ) {
-                    // Actual permission request lives in Phase 1.5 — for now just record intent.
                     state.healthSyncEnabled = true
+                    Task {
+                        // Surface the system permission sheet immediately. The user can deny;
+                        // we treat that as "intent recorded, no actual data flow" and the plan
+                        // generator will just skip the step.
+                        try? await HealthKitService.shared.requestAuthorization()
+                    }
                 }
 
                 OptionCard(

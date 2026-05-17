@@ -46,7 +46,9 @@ final class NutritionEngineTests: XCTestCase {
     // MARK: - Goal adjustment cap
 
     func testGoalDeficitCappedAt20Percent() {
-        let (kcal, _) = NutritionEngine.goalAdjustedKcal(tdee: 3000, goal: .loseWeight)
+        // Fast pace + small-ish TDEE: deficit (~825 kcal/day from 0.75 kg/wk) blows past
+        // the ±20% cap, so the cap must clamp the result to 80% of TDEE.
+        let (kcal, _) = NutritionEngine.goalAdjustedKcal(tdee: 3000, goal: .loseWeight, pace: .fast)
         XCTAssertEqual(kcal, Int((3000 * 0.80).rounded()))
     }
 
@@ -116,5 +118,121 @@ final class NutritionEngineTests: XCTestCase {
         )
         let r = NutritionEngine.compute(inputs)
         XCTAssertLessThan(abs(r.weeklyDeltaKg), 0.4)
+    }
+
+    // MARK: - Pace
+
+    func testPaceChangesKcalForLoseGoal() {
+        let slow = NutritionEngine.goalAdjustedKcal(tdee: 2500, goal: .loseWeight, pace: .slow)
+        let med  = NutritionEngine.goalAdjustedKcal(tdee: 2500, goal: .loseWeight, pace: .medium)
+        let fast = NutritionEngine.goalAdjustedKcal(tdee: 2500, goal: .loseWeight, pace: .fast)
+        // Faster pace = larger deficit = lower kcal.
+        XCTAssertGreaterThan(slow.kcal, med.kcal)
+        XCTAssertGreaterThan(med.kcal, fast.kcal)
+        // All deltas are negative for loseWeight.
+        XCTAssertLessThan(slow.weeklyDeltaKg, 0)
+        XCTAssertLessThan(med.weeklyDeltaKg, 0)
+        XCTAssertLessThan(fast.weeklyDeltaKg, 0)
+    }
+
+    func testPaceChangesKcalForGainGoal() {
+        let slow = NutritionEngine.goalAdjustedKcal(tdee: 2500, goal: .gainWeight, pace: .slow)
+        let fast = NutritionEngine.goalAdjustedKcal(tdee: 2500, goal: .gainWeight, pace: .fast)
+        XCTAssertLessThan(slow.kcal, fast.kcal)
+        XCTAssertGreaterThan(slow.weeklyDeltaKg, 0)
+        XCTAssertGreaterThan(fast.weeklyDeltaKg, 0)
+    }
+
+    func testMaintainIgnoresPace() {
+        let slow = NutritionEngine.goalAdjustedKcal(tdee: 2400, goal: .maintain, pace: .slow)
+        let fast = NutritionEngine.goalAdjustedKcal(tdee: 2400, goal: .maintain, pace: .fast)
+        XCTAssertEqual(slow.kcal, 2400)
+        XCTAssertEqual(fast.kcal, 2400)
+        XCTAssertEqual(slow.weeklyDeltaKg, 0, accuracy: 0.001)
+    }
+
+    func testFastPaceStillCappedAt20Percent() {
+        // Tiny TDEE — even fast pace must clamp to ±20 %.
+        let r = NutritionEngine.goalAdjustedKcal(tdee: 1500, goal: .loseWeight, pace: .fast)
+        XCTAssertGreaterThanOrEqual(r.kcal, Int((1500 * 0.80).rounded()))
+    }
+
+    // MARK: - Projection
+
+    func testProjectionForLossEndsAtGoal() {
+        let pts = NutritionEngine.projectWeeks(currentKg: 80, goalKg: 75, pace: .medium)
+        XCTAssertEqual(pts.first?.weightKg ?? 0, 80, accuracy: 0.001)
+        XCTAssertEqual(pts.last?.weightKg ?? 0, 75, accuracy: 0.001)
+        // 5 kg / 0.5 = 10 weeks (plus index 0 → 11 points).
+        XCTAssertEqual(pts.count, 11)
+    }
+
+    func testProjectionForGainEndsAtGoal() {
+        let pts = NutritionEngine.projectWeeks(currentKg: 70, goalKg: 75, pace: .slow)
+        XCTAssertEqual(pts.first?.weightKg ?? 0, 70, accuracy: 0.001)
+        XCTAssertEqual(pts.last?.weightKg ?? 0, 75, accuracy: 0.001)
+    }
+
+    func testProjectionForMaintainIsSinglePoint() {
+        let pts = NutritionEngine.projectWeeks(currentKg: 70, goalKg: 70, pace: .medium)
+        XCTAssertEqual(pts.count, 1)
+    }
+
+    func testWeeksToReachIsCeilOfWeeks() {
+        XCTAssertEqual(NutritionEngine.weeksToReach(currentKg: 80, goalKg: 75, pace: .medium), 10)
+        // 5 kg / 0.25 = 20 weeks.
+        XCTAssertEqual(NutritionEngine.weeksToReach(currentKg: 80, goalKg: 75, pace: .slow), 20)
+    }
+
+    // MARK: - Goal realism
+
+    func testRealismFlagsUnderweightGoal() {
+        // 1.80 m, 55 kg goal → BMI ~17 (underweight)
+        let warning = NutritionEngine.goalRealismWarning(
+            heightCm: 180, goalKg: 55, currentKg: 80
+        )
+        XCTAssertNotNil(warning)
+    }
+
+    func testRealismSilentForSensibleGoal() {
+        // 1.80 m, 75 kg goal → BMI ~23 (healthy)
+        let warning = NutritionEngine.goalRealismWarning(
+            heightCm: 180, goalKg: 75, currentKg: 78
+        )
+        XCTAssertNil(warning)
+    }
+
+    func testRealismFlagsExtremeGain() {
+        let warning = NutritionEngine.goalRealismWarning(
+            heightCm: 175, goalKg: 130, currentKg: 70
+        )
+        XCTAssertNotNil(warning)
+    }
+}
+
+// MARK: - Micronutrients
+
+final class MicronutrientsTests: XCTestCase {
+    func testRDIDiffersBetweenSexes() {
+        let male = DailyIntake.recommended(sex: .male)
+        let female = DailyIntake.recommended(sex: .female)
+        XCTAssertGreaterThan(male.vitaminCMg ?? 0, female.vitaminCMg ?? 0)
+        XCTAssertGreaterThan(female.ironMg ?? 0, male.ironMg ?? 0)
+    }
+
+    func testSumHandlesNils() {
+        let a = Micronutrients(vitaminCMg: 30, ironMg: nil)
+        let b = Micronutrients(vitaminCMg: 40, ironMg: 4)
+        let sum = Micronutrients.sum([a, b, nil])
+        XCTAssertEqual(sum.vitaminCMg, 70)
+        XCTAssertEqual(sum.ironMg, 4)
+    }
+
+    func testScaleAppliesToAllPresentValues() {
+        let m = Micronutrients(vitaminDMcg: 10, ironMg: 5, zincMg: nil)
+        let s = m.scaled(by: 0.5)
+        XCTAssertEqual(s.vitaminDMcg, 5)
+        XCTAssertEqual(s.ironMg, 2.5)
+        XCTAssertNil(s.zincMg)
     }
 }

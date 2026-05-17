@@ -13,6 +13,7 @@ struct OnboardingCoordinator: View {
                 case .goal:             GoalScreen(state: state).stepTransition()
                 case .currentWeight:    CurrentWeightScreen(state: state).stepTransition()
                 case .goalWeight:       GoalWeightScreen(state: state).stepTransition()
+                case .pace:             PaceScreen(state: state).stepTransition()
                 case .age:              AgeScreen(state: state).stepTransition()
                 case .sex:              SexScreen(state: state).stepTransition()
                 case .height:           HeightScreen(state: state).stepTransition()

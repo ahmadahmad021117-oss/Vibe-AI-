@@ -13,6 +13,7 @@ final class FoodLogService {
         let protein = items.reduce(0) { $0 + $1.proteinG }
         let carbs = items.reduce(0) { $0 + $1.carbsG }
         let fat = items.reduce(0) { $0 + $1.fatG }
+        let micros = Micronutrients.sum(items.map { $0.micros })
 
         let itemsJSON: [AnyJSON] = items.map { item in
             var d: [String: AnyJSON] = [
@@ -24,10 +25,16 @@ final class FoodLogService {
                 "fat_g": .double(item.fatG),
             ]
             if let c = item.confidence { d["confidence"] = .double(c) }
+            if let v = item.vitaminDMcg   { d["vitamin_d_mcg"]   = .double(v) }
+            if let v = item.vitaminB12Mcg { d["vitamin_b12_mcg"] = .double(v) }
+            if let v = item.vitaminCMg    { d["vitamin_c_mg"]    = .double(v) }
+            if let v = item.magnesiumMg   { d["magnesium_mg"]    = .double(v) }
+            if let v = item.ironMg        { d["iron_mg"]         = .double(v) }
+            if let v = item.zincMg        { d["zinc_mg"]         = .double(v) }
             return .object(d)
         }
 
-        let payload: [String: AnyJSON] = [
+        var payload: [String: AnyJSON] = [
             "user_id": .string(userId.uuidString),
             "image_path": imagePath.map { AnyJSON.string($0) } ?? .null,
             "items_json": .array(itemsJSON),
@@ -37,6 +44,12 @@ final class FoodLogService {
             "fat_g": .double(fat),
             "source": .string(source.rawValue),
         ]
+        if let v = micros.vitaminDMcg   { payload["vitamin_d_mcg"]   = .double(v) }
+        if let v = micros.vitaminB12Mcg { payload["vitamin_b12_mcg"] = .double(v) }
+        if let v = micros.vitaminCMg    { payload["vitamin_c_mg"]    = .double(v) }
+        if let v = micros.magnesiumMg   { payload["magnesium_mg"]    = .double(v) }
+        if let v = micros.ironMg        { payload["iron_mg"]         = .double(v) }
+        if let v = micros.zincMg        { payload["zinc_mg"]         = .double(v) }
 
         try await SupabaseService.shared.from("food_logs").insert(payload).execute()
     }
