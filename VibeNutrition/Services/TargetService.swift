@@ -18,6 +18,7 @@ final class TargetService {
             "avg_steps": inputs.avgSteps.map { AnyJSON.integer($0) } ?? .null,
             "goal": .string(inputs.goal.rawValue),
             "main_focus": inputs.mainFocus.map { AnyJSON.string($0.rawValue) } ?? .null,
+            "pace": inputs.pace.map { AnyJSON.string($0.rawValue) } ?? .null,
             "bmr": .integer(result.bmr),
             "activity_multiplier": .double(result.activityMultiplier),
             "tdee": .integer(result.tdee),

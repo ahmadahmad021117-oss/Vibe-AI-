@@ -17,18 +17,35 @@ final class HealthKitService {
 
     private var readTypes: Set<HKObjectType> {
         var set = Set<HKObjectType>()
-        if let steps = HKObjectType.quantityType(forIdentifier: .stepCount) {
-            set.insert(steps)
+        for id in [
+            HKQuantityTypeIdentifier.stepCount,
+            .activeEnergyBurned,
+            .bodyMass,
+            .dietaryEnergyConsumed,
+        ] {
+            if let type = HKObjectType.quantityType(forIdentifier: id) {
+                set.insert(type)
+            }
         }
-        if let activeKcal = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned) {
-            set.insert(activeKcal)
+        return set
+    }
+
+    private var writeTypes: Set<HKSampleType> {
+        var set = Set<HKSampleType>()
+        for id in [
+            HKQuantityTypeIdentifier.bodyMass,
+            .dietaryEnergyConsumed,
+        ] {
+            if let type = HKObjectType.quantityType(forIdentifier: id) {
+                set.insert(type)
+            }
         }
         return set
     }
 
     func requestAuthorization() async throws {
         guard isAvailable else { throw HealthKitError.notAvailable }
-        try await store.requestAuthorization(toShare: [], read: readTypes)
+        try await store.requestAuthorization(toShare: writeTypes, read: readTypes)
     }
 
     /// 14-day average daily steps. Returns nil on permission denial or no data.
@@ -60,6 +77,63 @@ final class HealthKitService {
             }
             self.store.execute(query)
         }
+    }
+
+    // MARK: - Weight (read + write)
+
+    /// Most recent body-mass sample in kilograms. Nil if no sample or no permission.
+    func latestWeightKg() async -> Double? {
+        guard
+            isAvailable,
+            let type = HKQuantityType.quantityType(forIdentifier: .bodyMass)
+        else { return nil }
+
+        return await withCheckedContinuation { continuation in
+            let sort = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
+            let query = HKSampleQuery(
+                sampleType: type,
+                predicate: nil,
+                limit: 1,
+                sortDescriptors: [sort]
+            ) { _, samples, _ in
+                guard let sample = samples?.first as? HKQuantitySample else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+                continuation.resume(returning: sample.quantity.doubleValue(for: .gramUnit(with: .kilo)))
+            }
+            self.store.execute(query)
+        }
+    }
+
+    /// Write a body-mass sample to HealthKit. Throws if writing isn't authorized.
+    @discardableResult
+    func writeWeight(kg: Double, at date: Date = Date()) async throws -> Bool {
+        guard
+            isAvailable,
+            let type = HKQuantityType.quantityType(forIdentifier: .bodyMass)
+        else { throw HealthKitError.notAvailable }
+
+        let qty = HKQuantity(unit: .gramUnit(with: .kilo), doubleValue: kg)
+        let sample = HKQuantitySample(type: type, quantity: qty, start: date, end: date)
+        try await store.save(sample)
+        return true
+    }
+
+    // MARK: - Dietary energy (write)
+
+    /// Write a consumed-calories sample (e.g. when a food log is saved).
+    @discardableResult
+    func writeDietaryEnergy(kcal: Double, at date: Date = Date()) async throws -> Bool {
+        guard
+            isAvailable,
+            let type = HKQuantityType.quantityType(forIdentifier: .dietaryEnergyConsumed)
+        else { throw HealthKitError.notAvailable }
+
+        let qty = HKQuantity(unit: .kilocalorie(), doubleValue: kcal)
+        let sample = HKQuantitySample(type: type, quantity: qty, start: date, end: date)
+        try await store.save(sample)
+        return true
     }
 
     /// 14-day average daily active energy in kcal.

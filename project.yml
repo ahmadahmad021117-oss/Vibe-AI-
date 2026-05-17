@@ -39,10 +39,10 @@ targets:
         UIUserInterfaceStyle: Dark
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
-        NSCameraUsageDescription: Vibe uses the camera to scan your meals and estimate calories.
-        NSPhotoLibraryUsageDescription: Vibe lets you pick meal photos from your library to log food.
-        NSHealthShareUsageDescription: Vibe reads steps and active energy to personalize your daily calorie target.
-        NSHealthUpdateUsageDescription: Vibe can write nutrition entries to Apple Health if you opt in.
+        NSCameraUsageDescription: VibeCal uses the camera to scan your meals and estimate calories.
+        NSPhotoLibraryUsageDescription: VibeCal lets you pick meal photos from your library to log food.
+        NSHealthShareUsageDescription: VibeCal reads steps, active energy, and weight to personalize your daily calorie target.
+        NSHealthUpdateUsageDescription: VibeCal can write weight and nutrition entries to Apple Health if you opt in.
         ITSAppUsesNonExemptEncryption: false
         CFBundleURLTypes:
           - CFBundleURLSchemes:

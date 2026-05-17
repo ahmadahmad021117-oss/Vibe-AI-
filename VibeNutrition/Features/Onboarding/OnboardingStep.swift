@@ -4,6 +4,7 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
     case goal = 0
     case currentWeight
     case goalWeight
+    case pace            // selecting pace + showing projection chart
     case age
     case sex
     case height

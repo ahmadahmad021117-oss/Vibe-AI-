@@ -51,6 +51,11 @@ struct ProfilePatch {
     var mealSuggestionsEnabled: Bool?
     var notificationPref: NotificationPref?
     var healthSyncEnabled: Bool?
+    var pace: Pace?
+    var marketingEmail: String?
+    var marketingEmailOptIn: Bool?
+    /// ISO-8601 timestamp string; set when consent is granted or withdrawn.
+    var marketingConsentAt: String?
 
     var dictionary: [String: AnyJSON] {
         var out: [String: AnyJSON] = [:]
@@ -65,6 +70,10 @@ struct ProfilePatch {
         if let mealSuggestionsEnabled { out["meal_suggestions_enabled"] = .bool(mealSuggestionsEnabled) }
         if let notificationPref { out["notification_pref"] = .string(notificationPref.rawValue) }
         if let healthSyncEnabled { out["health_sync_enabled"] = .bool(healthSyncEnabled) }
+        if let pace { out["pace"] = .string(pace.rawValue) }
+        if let marketingEmail { out["marketing_email"] = .string(marketingEmail) }
+        if let marketingEmailOptIn { out["marketing_email_opt_in"] = .bool(marketingEmailOptIn) }
+        if let marketingConsentAt { out["marketing_consent_at"] = .string(marketingConsentAt) }
         return out
     }
 }

@@ -17,7 +17,7 @@ struct SplashView: View {
                             .font(.system(size: 56, weight: .heavy))
                             .foregroundStyle(Theme.Palette.bg)
                     )
-                Text("Vibe")
+                Text("VibeCal")
                     .font(Theme.Type.h1)
                     .foregroundStyle(Theme.Palette.text)
             }

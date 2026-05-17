@@ -100,3 +100,39 @@ enum ActivitySource: String, Codable {
     case manual
 }
 enum EntitlementTier: String, Codable { case free, premium }
+
+/// How aggressively the user wants to move toward their goal.
+/// Used to size the daily calorie surplus/deficit (cap-limited by NutritionEngine).
+enum Pace: String, Codable, CaseIterable, Identifiable {
+    case slow
+    case medium
+    case fast
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .slow: return "Slow & steady"
+        case .medium: return "Balanced"
+        case .fast: return "Faster"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .slow: return "About 0.25 kg / week"
+        case .medium: return "About 0.5 kg / week"
+        case .fast: return "About 0.75 kg / week"
+        }
+    }
+
+    /// Target absolute weight delta per week, in kg.
+    /// Applies as a deficit for loss goals and a surplus for gain goals.
+    var weeklyKg: Double {
+        switch self {
+        case .slow:   return 0.25
+        case .medium: return 0.50
+        case .fast:   return 0.75
+        }
+    }
+}

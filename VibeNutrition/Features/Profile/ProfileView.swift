@@ -2,12 +2,25 @@ import SwiftUI
 
 struct ProfileView: View {
     @Environment(\.dismiss) private var dismiss
+
     @State private var profile: Profile?
+    @State private var latestGoal: Goal?
+    @State private var latestWeight: WeightLog?
     @State private var notificationPref: NotificationPref = .important
+    @State private var pace: Pace = .medium
+
+    // Edit sheets / inline pickers
     @State private var showingDeleteConfirm = false
     @State private var deleting = false
     @State private var error: String?
     @State private var exportURL: URL?
+
+    @State private var showingEditWeight = false
+    @State private var showingEditGoalWeight = false
+    @State private var showingFAQ = false
+    @State private var showingPrivacy = false
+    @State private var showingTerms = false
+    @State private var showingEmailSheet = false
 
     var body: some View {
         ZStack {
@@ -17,6 +30,9 @@ struct ProfileView: View {
                     header
                     accountSection
                     subscriptionSection
+                    goalSection
+                    paceSection
+                    projectionSection
                     notificationsSection
                     dataSection
                     legalSection
@@ -37,12 +53,41 @@ struct ProfileView: View {
                        Task { await deleteAccount() }
                    }
                },
-               message: { Text("This permanently removes your profile, logs, weights, scans, and subscription record. It cannot be undone.") })
+               message: {
+                   Text("This permanently removes your profile, logs, weights, scans, and subscription record. It cannot be undone.")
+               })
         .alert("Error", isPresented: .constant(error != nil), actions: {
             Button("OK") { error = nil }
         }, message: { Text(error ?? "") })
         .sheet(item: $exportURL) { url in
             ShareSheet(activityItems: [url])
+        }
+        .sheet(isPresented: $showingFAQ) { FAQView() }
+        .sheet(isPresented: $showingPrivacy) { PrivacyPolicyView() }
+        .sheet(isPresented: $showingTerms) { TermsOfServiceView() }
+        .sheet(isPresented: $showingEditWeight) {
+            EditWeightSheet(
+                title: "Update current weight",
+                initialKg: latestWeight?.weightKg ?? latestGoal?.startWeightKg ?? 70
+            ) { newKg in
+                Task { await saveCurrentWeight(newKg) }
+            }
+        }
+        .sheet(isPresented: $showingEditGoalWeight) {
+            EditWeightSheet(
+                title: "Update goal weight",
+                initialKg: latestGoal?.goalWeightKg ?? 70
+            ) { newKg in
+                Task { await saveGoalWeight(newKg) }
+            }
+        }
+        .sheet(isPresented: $showingEmailSheet) {
+            MarketingEmailSheet(
+                initialEmail: profile?.marketingEmail ?? AuthService.shared.session?.user.email ?? "",
+                initialOptIn: profile?.marketingEmailOptIn ?? false
+            ) { email, optIn in
+                Task { await saveMarketingConsent(email: email, optIn: optIn) }
+            }
         }
     }
 
@@ -65,19 +110,36 @@ struct ProfileView: View {
         }
     }
 
+    // MARK: - Sections
+
     private var accountSection: some View {
         section("Account") {
-            row(icon: "envelope", label: "Email") {
+            row(icon: "envelope", label: "Account email") {
                 Text(AuthService.shared.session?.user.email ?? "—")
                     .font(Theme.Type.caption)
                     .foregroundStyle(Theme.Palette.textMuted)
             }
-            row(icon: "arrow.right.square", label: "Sign out") {}
-                .onTapGesture {
-                    Haptics.tapLight()
-                    Task { try? await AuthService.shared.signOut() }
+            tappableRow(icon: "megaphone", label: marketingRowLabel) {
+                showingEmailSheet = true
+            }
+            tappableRow(icon: "arrow.right.square", label: "Sign out") {
+                Task {
+                    do {
+                        try await AuthService.shared.signOut()
+                        dismiss()
+                    } catch {
+                        self.error = error.localizedDescription
+                    }
                 }
+            }
         }
+    }
+
+    private var marketingRowLabel: String {
+        if profile?.marketingEmailOptIn == true {
+            return "Marketing email · On"
+        }
+        return "Marketing email · Off"
     }
 
     private var subscriptionSection: some View {
@@ -87,13 +149,63 @@ struct ProfileView: View {
                     .font(Theme.Type.caption)
                     .foregroundStyle(EntitlementService.shared.isPremium ? Theme.Palette.accent : Theme.Palette.textMuted)
             }
-            row(icon: "gear", label: "Manage in App Store") {}
-                .onTapGesture {
-                    if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
-                        Haptics.tapLight()
-                        UIApplication.shared.open(url)
+            tappableRow(icon: "gear", label: "Manage in App Store") {
+                if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
+                    UIApplication.shared.open(url)
+                }
+            }
+        }
+    }
+
+    private var goalSection: some View {
+        section("Weight") {
+            tappableRow(icon: "scalemass", label: "Current weight") {
+                showingEditWeight = true
+            } trailing: {
+                Text(weightString(latestWeight?.weightKg ?? latestGoal?.startWeightKg))
+                    .font(Theme.Type.caption)
+                    .foregroundStyle(Theme.Palette.textMuted)
+            }
+            tappableRow(icon: "target", label: "Goal weight") {
+                showingEditGoalWeight = true
+            } trailing: {
+                Text(weightString(latestGoal?.goalWeightKg))
+                    .font(Theme.Type.caption)
+                    .foregroundStyle(Theme.Palette.textMuted)
+            }
+        }
+    }
+
+    private var paceSection: some View {
+        section("Pace") {
+            VStack(spacing: Theme.Spacing.sm) {
+                ForEach(Pace.allCases) { p in
+                    OptionCard(
+                        title: p.label,
+                        subtitle: p.subtitle,
+                        systemImage: paceIcon(p),
+                        isSelected: pace == p
+                    ) {
+                        pace = p
+                        Task { await savePace(p) }
                     }
                 }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var projectionSection: some View {
+        if let current = latestWeight?.weightKg ?? latestGoal?.startWeightKg,
+           let goal = latestGoal?.goalWeightKg {
+            section("Projection") {
+                WeightProjectionChart(
+                    currentKg: current,
+                    goalKg: goal,
+                    pace: pace,
+                    heightCm: profile?.heightCm
+                )
+            }
         }
     }
 
@@ -117,35 +229,19 @@ struct ProfileView: View {
         }
     }
 
-    private func iconFor(_ pref: NotificationPref) -> String {
-        switch pref {
-        case .full: return "bell.badge.fill"
-        case .important: return "bell.fill"
-        case .off: return "bell.slash.fill"
-        }
-    }
-
     private var dataSection: some View {
         section("Your data") {
-            row(icon: "square.and.arrow.up", label: "Export as JSON") {}
-                .onTapGesture { Task { await exportData() } }
+            tappableRow(icon: "square.and.arrow.up", label: "Export as JSON") {
+                Task { await exportData() }
+            }
         }
     }
 
     private var legalSection: some View {
         section("Help & Legal") {
-            row(icon: "questionmark.circle", label: "FAQ") {}
-                .onTapGesture {
-                    open("https://vibe-nutrition.example.com/faq")
-                }
-            row(icon: "doc.text", label: "Privacy policy") {}
-                .onTapGesture {
-                    open("https://vibe-nutrition.example.com/privacy")
-                }
-            row(icon: "doc.plaintext", label: "Terms of service") {}
-                .onTapGesture {
-                    open("https://vibe-nutrition.example.com/terms")
-                }
+            tappableRow(icon: "questionmark.circle", label: "FAQ") { showingFAQ = true }
+            tappableRow(icon: "doc.text", label: "Privacy policy") { showingPrivacy = true }
+            tappableRow(icon: "doc.plaintext", label: "Terms of service") { showingTerms = true }
         }
     }
 
@@ -171,6 +267,27 @@ struct ProfileView: View {
     }
 
     // MARK: - Helpers
+
+    private func iconFor(_ pref: NotificationPref) -> String {
+        switch pref {
+        case .full: return "bell.badge.fill"
+        case .important: return "bell.fill"
+        case .off: return "bell.slash.fill"
+        }
+    }
+
+    private func paceIcon(_ pace: Pace) -> String {
+        switch pace {
+        case .slow:   return "tortoise.fill"
+        case .medium: return "figure.walk"
+        case .fast:   return "hare.fill"
+        }
+    }
+
+    private func weightString(_ kg: Double?) -> String {
+        guard let kg else { return "—" }
+        return String(format: "%.1f kg", kg)
+    }
 
     @ViewBuilder
     private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
@@ -200,9 +317,61 @@ struct ProfileView: View {
         .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))
     }
 
+    /// Real button-driven row so VoiceOver and tap targets actually work.
+    /// Overload without a trailing view (the chevron is shown either way).
+    private func tappableRow(
+        icon: String,
+        label: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        tappableRow(icon: icon, label: label, action: action) { EmptyView() }
+    }
+
+    @ViewBuilder
+    private func tappableRow<Trailing: View>(
+        icon: String,
+        label: String,
+        action: @escaping () -> Void,
+        @ViewBuilder trailing: () -> Trailing
+    ) -> some View {
+        Button {
+            Haptics.tapLight()
+            action()
+        } label: {
+            HStack(spacing: Theme.Spacing.md) {
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(Theme.Palette.textMuted)
+                    .frame(width: 24)
+                Text(label)
+                    .font(Theme.Type.body)
+                    .foregroundStyle(Theme.Palette.text)
+                Spacer()
+                trailing()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Theme.Palette.textDim)
+            }
+            .padding(Theme.Spacing.md)
+            .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))
+        }
+        .accessibilityLabel(label)
+    }
+
+    // MARK: - Data ops
+
     private func load() async {
-        profile = try? await ProfileService.shared.fetchCurrent()
-        notificationPref = profile?.notificationPref ?? .important
+        async let profileT = ProfileService.shared.fetchCurrent()
+        async let goalT    = GoalService.shared.fetchLatest()
+        async let weightT  = WeightLogService.shared.fetchLatest()
+        let profile  = try? await profileT
+        let goal     = try? await goalT
+        let weight   = try? await weightT
+        self.profile = profile
+        self.latestGoal = goal
+        self.latestWeight = weight
+        self.notificationPref = profile?.notificationPref ?? .important
+        self.pace = profile?.pace ?? .medium
         await EntitlementService.shared.refresh()
     }
 
@@ -226,13 +395,62 @@ struct ProfileView: View {
         }
     }
 
-    private func open(_ string: String) {
-        if let url = URL(string: string) {
-            Haptics.tapLight()
-            UIApplication.shared.open(url)
+    private func saveCurrentWeight(_ kg: Double) async {
+        do {
+            try await WeightLogService.shared.write(weightKg: kg)
+            latestWeight = try await WeightLogService.shared.fetchLatest()
+            // Recompute kcal target: weight changed → BMR/TDEE change.
+            await recomputePlan()
+        } catch {
+            self.error = error.localizedDescription
         }
     }
+
+    private func saveGoalWeight(_ kg: Double) async {
+        do {
+            try await GoalService.shared.updateGoalWeight(kg)
+            latestGoal = try await GoalService.shared.fetchLatest()
+            await recomputePlan()
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    private func savePace(_ newPace: Pace) async {
+        do {
+            try await ProfileService.shared.upsert(ProfilePatch(pace: newPace))
+            profile?.pace = newPace
+            await recomputePlan()
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    private func saveMarketingConsent(email: String, optIn: Bool) async {
+        let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        let nowISO = ISO8601DateFormatter().string(from: Date())
+        let patch = ProfilePatch(
+            marketingEmail: trimmed.isEmpty ? nil : trimmed,
+            marketingEmailOptIn: optIn,
+            marketingConsentAt: nowISO
+        )
+        do {
+            try await ProfileService.shared.upsert(patch)
+            profile?.marketingEmail = trimmed.isEmpty ? nil : trimmed
+            profile?.marketingEmailOptIn = optIn
+            profile?.marketingConsentAt = Date()
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    private func recomputePlan() async {
+        let gen = PlanGenerator()
+        await gen.run(using: nil)   // hydrates from Supabase, picks up new weight/pace/goal
+    }
 }
+
+// MARK: - URL identifiable + share sheet
 
 // URL is Identifiable so we can drive sheet(item:).
 extension URL: @retroactive Identifiable {

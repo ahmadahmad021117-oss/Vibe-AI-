@@ -17,6 +17,17 @@ final class GoalService {
         try await SupabaseService.shared.from("goals").insert(payload).execute()
     }
 
+    /// Insert a new goal row reusing the existing goal type and start weight, but with a new target.
+    /// Used by settings → edit goal weight without losing history.
+    func updateGoalWeight(_ goalWeightKg: Double) async throws {
+        guard let latest = try await fetchLatest() else { return }
+        try await upsertActiveGoal(
+            type: latest.type,
+            startWeightKg: latest.startWeightKg,
+            goalWeightKg: goalWeightKg
+        )
+    }
+
     func fetchLatest() async throws -> Goal? {
         guard let userId = AuthService.shared.userId else { return nil }
         let rows: [Goal] = try await SupabaseService.shared

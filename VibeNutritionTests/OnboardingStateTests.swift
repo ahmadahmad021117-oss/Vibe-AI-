@@ -33,6 +33,7 @@ final class OnboardingStateTests: XCTestCase {
         s.goal = .recomp
         s.currentWeightKg = 75
         s.sex = .female
+        s.pace = .fast
         s.advance()
         s.persist()
 
@@ -40,9 +41,17 @@ final class OnboardingStateTests: XCTestCase {
         XCTAssertEqual(restored.goal, .recomp)
         XCTAssertEqual(restored.currentWeightKg, 75)
         XCTAssertEqual(restored.sex, .female)
+        XCTAssertEqual(restored.pace, .fast)
         XCTAssertEqual(restored.step, .currentWeight)
 
         OnboardingState.clear()
+    }
+
+    func testPaceStepAlwaysAdvances() {
+        let s = OnboardingState()
+        s.step = .pace
+        // Pace defaults to .medium so we can always continue.
+        XCTAssertTrue(s.canAdvance)
     }
 
     func testSexIsRequiredToAdvanceFromSexStep() {
