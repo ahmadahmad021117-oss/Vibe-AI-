@@ -35,3 +35,6 @@ Pods/
 
 # Supabase CLI
 supabase/.temp/
+
+# Claude Code local working dirs
+.claude/
