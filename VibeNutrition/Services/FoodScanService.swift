@@ -17,7 +17,7 @@ enum FoodScanError: LocalizedError {
     }
 }
 
-struct AnalyzedFood: Codable {
+struct AnalyzedFood: Codable, Equatable {
     let items: [FoodItem]
 
     var totals: (kcal: Int, protein: Double, carbs: Double, fat: Double) {

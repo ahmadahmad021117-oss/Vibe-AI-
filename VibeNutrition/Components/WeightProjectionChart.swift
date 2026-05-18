@@ -41,11 +41,11 @@ struct WeightProjectionChart: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             HStack {
                 Text("Projection")
-                    .font(Theme.Type.h3)
+                    .font(Theme.Typo.h3)
                     .foregroundStyle(Theme.Palette.text)
                 Spacer()
                 Text("\(direction) · \(pace.label)")
-                    .font(Theme.Type.caption)
+                    .font(Theme.Typo.caption)
                     .foregroundStyle(Theme.Palette.textMuted)
             }
 
@@ -56,12 +56,12 @@ struct WeightProjectionChart: View {
                 .accessibilityValue(etaText)
 
             Text(etaText)
-                .font(Theme.Type.body)
+                .font(Theme.Typo.body)
                 .foregroundStyle(Theme.Palette.textMuted)
 
             if let warning {
                 Label(warning, systemImage: "exclamationmark.triangle.fill")
-                    .font(Theme.Type.caption)
+                    .font(Theme.Typo.caption)
                     .foregroundStyle(Theme.Palette.danger)
                     .padding(Theme.Spacing.sm)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -103,7 +103,7 @@ struct WeightProjectionChart: View {
                 AxisValueLabel {
                     if let week = value.as(Int.self) {
                         Text("\(week)w")
-                            .font(Theme.Type.caption)
+                            .font(Theme.Typo.caption)
                             .foregroundStyle(Theme.Palette.textMuted)
                     }
                 }
@@ -115,7 +115,7 @@ struct WeightProjectionChart: View {
                 AxisValueLabel {
                     if let kg = value.as(Double.self) {
                         Text(String(format: "%.0f", kg))
-                            .font(Theme.Type.caption)
+                            .font(Theme.Typo.caption)
                             .foregroundStyle(Theme.Palette.textMuted)
                     }
                 }

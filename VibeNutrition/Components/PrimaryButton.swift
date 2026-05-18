@@ -11,7 +11,7 @@ struct PrimaryButton: View {
             action()
         } label: {
             Text(title)
-                .font(Theme.Type.bodyBold)
+                .font(Theme.Typo.bodyBold)
                 .foregroundStyle(Theme.Palette.bg)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
@@ -43,7 +43,7 @@ struct SecondaryButton: View {
             action()
         } label: {
             Text(title)
-                .font(Theme.Type.bodyBold)
+                .font(Theme.Typo.bodyBold)
                 .foregroundStyle(Theme.Palette.text)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)

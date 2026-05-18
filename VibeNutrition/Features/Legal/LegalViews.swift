@@ -18,12 +18,12 @@ struct FAQView: View {
                         )
                     ) {
                         Text(qa.answer)
-                            .font(Theme.Type.body)
+                            .font(Theme.Typo.body)
                             .foregroundStyle(Theme.Palette.textMuted)
                             .padding(.top, Theme.Spacing.sm)
                     } label: {
                         Text(qa.question)
-                            .font(Theme.Type.bodyBold)
+                            .font(Theme.Typo.bodyBold)
                             .foregroundStyle(Theme.Palette.text)
                             .multilineTextAlignment(.leading)
                     }
@@ -41,7 +41,7 @@ struct PrivacyPolicyView: View {
     var body: some View {
         legalContainer(title: "Privacy Policy", dismiss: dismiss) {
             Text(LegalContent.privacyPolicy)
-                .font(Theme.Type.body)
+                .font(Theme.Typo.body)
                 .foregroundStyle(Theme.Palette.text)
                 .lineSpacing(4)
                 .textSelection(.enabled)
@@ -54,7 +54,7 @@ struct TermsOfServiceView: View {
     var body: some View {
         legalContainer(title: "Terms of Service", dismiss: dismiss) {
             Text(LegalContent.termsOfService)
-                .font(Theme.Type.body)
+                .font(Theme.Typo.body)
                 .foregroundStyle(Theme.Palette.text)
                 .lineSpacing(4)
                 .textSelection(.enabled)
@@ -74,7 +74,7 @@ private func legalContainer<Content: View>(
         VStack(spacing: 0) {
             HStack {
                 Text(title)
-                    .font(Theme.Type.h2)
+                    .font(Theme.Typo.h2)
                     .foregroundStyle(Theme.Palette.text)
                 Spacer()
                 Button {

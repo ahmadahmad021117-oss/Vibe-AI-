@@ -94,7 +94,7 @@ struct ProfileView: View {
     private var header: some View {
         HStack {
             Text("Profile")
-                .font(Theme.Type.h1)
+                .font(Theme.Typo.h1)
                 .foregroundStyle(Theme.Palette.text)
             Spacer()
             Button {
@@ -116,7 +116,7 @@ struct ProfileView: View {
         section("Account") {
             row(icon: "envelope", label: "Account email") {
                 Text(AuthService.shared.session?.user.email ?? "—")
-                    .font(Theme.Type.caption)
+                    .font(Theme.Typo.caption)
                     .foregroundStyle(Theme.Palette.textMuted)
             }
             tappableRow(icon: "megaphone", label: marketingRowLabel) {
@@ -146,7 +146,7 @@ struct ProfileView: View {
         section("Subscription") {
             row(icon: "crown", label: "Status") {
                 Text(EntitlementService.shared.isPremium ? "Premium" : "Free")
-                    .font(Theme.Type.caption)
+                    .font(Theme.Typo.caption)
                     .foregroundStyle(EntitlementService.shared.isPremium ? Theme.Palette.accent : Theme.Palette.textMuted)
             }
             tappableRow(icon: "gear", label: "Manage in App Store") {
@@ -163,14 +163,14 @@ struct ProfileView: View {
                 showingEditWeight = true
             } trailing: {
                 Text(weightString(latestWeight?.weightKg ?? latestGoal?.startWeightKg))
-                    .font(Theme.Type.caption)
+                    .font(Theme.Typo.caption)
                     .foregroundStyle(Theme.Palette.textMuted)
             }
             tappableRow(icon: "target", label: "Goal weight") {
                 showingEditGoalWeight = true
             } trailing: {
                 Text(weightString(latestGoal?.goalWeightKg))
-                    .font(Theme.Type.caption)
+                    .font(Theme.Typo.caption)
                     .foregroundStyle(Theme.Palette.textMuted)
             }
         }
@@ -255,7 +255,7 @@ struct ProfileView: View {
                     Image(systemName: "trash.fill")
                         .foregroundStyle(Theme.Palette.danger)
                     Text(deleting ? "Deleting…" : "Delete my account")
-                        .font(Theme.Type.bodyBold)
+                        .font(Theme.Typo.bodyBold)
                         .foregroundStyle(Theme.Palette.danger)
                     Spacer()
                 }
@@ -293,7 +293,7 @@ struct ProfileView: View {
     private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             Text(title.uppercased())
-                .font(Theme.Type.caption)
+                .font(Theme.Typo.caption)
                 .foregroundStyle(Theme.Palette.textMuted)
                 .padding(.leading, 4)
             content()
@@ -308,7 +308,7 @@ struct ProfileView: View {
                 .foregroundStyle(Theme.Palette.textMuted)
                 .frame(width: 24)
             Text(label)
-                .font(Theme.Type.body)
+                .font(Theme.Typo.body)
                 .foregroundStyle(Theme.Palette.text)
             Spacer()
             trailing()
@@ -344,7 +344,7 @@ struct ProfileView: View {
                     .foregroundStyle(Theme.Palette.textMuted)
                     .frame(width: 24)
                 Text(label)
-                    .font(Theme.Type.body)
+                    .font(Theme.Typo.body)
                     .foregroundStyle(Theme.Palette.text)
                 Spacer()
                 trailing()

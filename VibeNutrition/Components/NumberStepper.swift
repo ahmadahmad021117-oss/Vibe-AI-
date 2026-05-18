@@ -12,12 +12,12 @@ struct NumberStepper: View {
 
             HStack(alignment: .lastTextBaseline, spacing: 4) {
                 Text("\(value)")
-                    .font(Theme.Type.numeralXL)
+                    .font(Theme.Typo.numeralXL)
                     .foregroundStyle(Theme.Palette.text)
                     .contentTransition(.numericText(value: Double(value)))
                 if !suffix.isEmpty {
                     Text(suffix)
-                        .font(Theme.Type.h3)
+                        .font(Theme.Typo.h3)
                         .foregroundStyle(Theme.Palette.textMuted)
                 }
             }

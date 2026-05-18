@@ -45,7 +45,7 @@ struct MarketingEmailSheet: View {
     private var header: some View {
         HStack {
             Text("Marketing email")
-                .font(Theme.Type.h2)
+                .font(Theme.Typo.h2)
                 .foregroundStyle(Theme.Palette.text)
             Spacer()
             Button {
@@ -64,7 +64,7 @@ struct MarketingEmailSheet: View {
     private var emailField: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             Text("EMAIL")
-                .font(Theme.Type.caption)
+                .font(Theme.Typo.caption)
                 .foregroundStyle(Theme.Palette.textMuted)
             TextField(
                 "",
@@ -91,11 +91,11 @@ struct MarketingEmailSheet: View {
                     .foregroundStyle(optIn ? Theme.Palette.accent : Theme.Palette.textMuted)
                 VStack(alignment: .leading, spacing: 4) {
                     Text("I'd like to receive updates and tips from VibeCal")
-                        .font(Theme.Type.body)
+                        .font(Theme.Typo.body)
                         .foregroundStyle(Theme.Palette.text)
                         .multilineTextAlignment(.leading)
                     Text("You can withdraw consent at any time from this screen. We won't send anything until you opt in.")
-                        .font(Theme.Type.caption)
+                        .font(Theme.Typo.caption)
                         .foregroundStyle(Theme.Palette.textMuted)
                         .multilineTextAlignment(.leading)
                 }

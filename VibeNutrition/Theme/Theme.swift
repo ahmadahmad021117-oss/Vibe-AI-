@@ -57,7 +57,9 @@ enum Theme {
         static let spring = Animation.interpolatingSpring(stiffness: 220, damping: 22)
     }
 
-    enum Type {
+    /// Typography (renamed from `Type` — Swift 6 forbids nested types named `Type`
+    /// because it collides with the metatype expression syntax).
+    enum Typo {
         static let h1 = Font.system(size: 32, weight: .bold, design: .rounded)
         static let h2 = Font.system(size: 24, weight: .bold, design: .rounded)
         static let h3 = Font.system(size: 20, weight: .semibold, design: .rounded)

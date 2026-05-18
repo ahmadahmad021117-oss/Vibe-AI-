@@ -22,16 +22,16 @@ struct EditWeightSheet: View {
             Theme.Palette.bg.ignoresSafeArea()
             VStack(spacing: Theme.Spacing.lg) {
                 Text(title)
-                    .font(Theme.Type.h2)
+                    .font(Theme.Typo.h2)
                     .foregroundStyle(Theme.Palette.text)
                     .padding(.top, Theme.Spacing.md)
 
                 HStack(alignment: .lastTextBaseline, spacing: 4) {
                     Text(String(format: "%.1f", weightKg))
-                        .font(Theme.Type.numeralXL)
+                        .font(Theme.Typo.numeralXL)
                         .foregroundStyle(Theme.Palette.text)
                     Text("kg")
-                        .font(Theme.Type.h3)
+                        .font(Theme.Typo.h3)
                         .foregroundStyle(Theme.Palette.textMuted)
                 }
 
