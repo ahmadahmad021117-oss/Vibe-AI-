@@ -1,9 +1,9 @@
 // Supabase Edge Function — analyze-food
-// Accepts a storage path to a user-uploaded food image, calls OpenAI Vision,
+// Accepts a storage path to a user-uploaded food image, calls Anthropic Claude,
 // returns a strictly-validated JSON breakdown.
 //
 // Deploy: supabase functions deploy analyze-food
-// Required secrets: OPENAI_API_KEY (supabase secrets set OPENAI_API_KEY=...)
+// Required secrets: ANTHROPIC_API_KEY (supabase secrets set ANTHROPIC_API_KEY=...)
 
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
@@ -49,40 +49,77 @@ For each item, return calories, protein, carbs, and fat in grams, plus realistic
 estimates (vitamin D μg, vitamin B12 μg, vitamin C mg, magnesium mg, iron mg, zinc mg) — use 0
 when a nutrient is essentially absent. Be conservative — under-estimate before over-estimating.
 Confidence reflects how sure you are (0..1).
+Call the record_meal tool exactly once with all detected items.`;
 
-Return ONLY valid JSON matching this exact shape, no prose:
-{ "items": [
-  { "name": "...", "grams": 0, "kcal": 0,
-    "protein_g": 0, "carbs_g": 0, "fat_g": 0,
-    "vitamin_d_mcg": 0, "vitamin_b12_mcg": 0, "vitamin_c_mg": 0,
-    "magnesium_mg": 0, "iron_mg": 0, "zinc_mg": 0,
-    "confidence": 0.0 }
-] }`;
+// Structured-output tool. Claude is forced to call this (via tool_choice), so the
+// response is guaranteed to match the schema — no JSON-mode workarounds needed.
+const RECORD_MEAL_TOOL = {
+  name: 'record_meal',
+  description: 'Record the food items detected in the photo with macro and micronutrient estimates.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      items: {
+        type: 'array',
+        minItems: 1,
+        maxItems: 20,
+        items: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', maxLength: 80 },
+            grams: { type: 'number', minimum: 0, maximum: 2000 },
+            kcal: { type: 'integer', minimum: 0, maximum: 5000 },
+            protein_g: { type: 'number', minimum: 0, maximum: 500 },
+            carbs_g: { type: 'number', minimum: 0, maximum: 500 },
+            fat_g: { type: 'number', minimum: 0, maximum: 500 },
+            confidence: { type: 'number', minimum: 0, maximum: 1 },
+            vitamin_d_mcg:   { type: 'number', minimum: 0, maximum: 200 },
+            vitamin_b12_mcg: { type: 'number', minimum: 0, maximum: 200 },
+            vitamin_c_mg:    { type: 'number', minimum: 0, maximum: 2000 },
+            magnesium_mg:    { type: 'number', minimum: 0, maximum: 2000 },
+            iron_mg:         { type: 'number', minimum: 0, maximum: 100 },
+            zinc_mg:         { type: 'number', minimum: 0, maximum: 100 },
+          },
+          required: ['name', 'grams', 'kcal', 'protein_g', 'carbs_g', 'fat_g'],
+        },
+      },
+    },
+    required: ['items'],
+  },
+  // Cache the tool definition — it never changes across requests, so this
+  // gives ~90% input-cost savings on the system+tool prefix once it's warm.
+  cache_control: { type: 'ephemeral' },
+};
 
 async function analyze(imageURL: string): Promise<unknown> {
-  const apiKey = Deno.env.get('OPENAI_API_KEY');
+  const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
   if (!apiKey) {
-    throw new Error('OPENAI_API_KEY not configured');
+    throw new Error('ANTHROPIC_API_KEY not configured');
   }
 
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o',
-      response_format: { type: 'json_object' },
-      temperature: 0.1,
-      max_tokens: 800,
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1024,
+      system: [
+        // System prompt is cached alongside the tool definition for the prefix-cache hit.
+        { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
+      ],
+      tools: [RECORD_MEAL_TOOL],
+      // Force the model to call record_meal — guarantees a structured response.
+      tool_choice: { type: 'tool', name: 'record_meal' },
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
         {
           role: 'user',
           content: [
+            { type: 'image', source: { type: 'url', url: imageURL } },
             { type: 'text', text: 'Identify and estimate macros for this meal.' },
-            { type: 'image_url', image_url: { url: imageURL, detail: 'high' } },
           ],
         },
       ],
@@ -91,15 +128,15 @@ async function analyze(imageURL: string): Promise<unknown> {
 
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error(`OpenAI ${res.status}: ${errText}`);
+    throw new Error(`Anthropic ${res.status}: ${errText}`);
   }
 
   const json = await res.json();
-  const raw = json.choices?.[0]?.message?.content;
-  if (typeof raw !== 'string') {
-    throw new Error('OpenAI returned no content');
+  const toolBlock = json.content?.find((c: { type?: string }) => c?.type === 'tool_use');
+  if (!toolBlock || typeof toolBlock.input !== 'object' || toolBlock.input === null) {
+    throw new Error('Anthropic response missing tool_use block');
   }
-  return JSON.parse(raw);
+  return toolBlock.input;
 }
 
 serve(async (req) => {
@@ -157,7 +194,7 @@ serve(async (req) => {
       });
     }
 
-    // Call OpenAI, retry once on validation failure.
+    // Call Claude, retry once on schema-validation failure (model occasionally returns out-of-range values).
     let validated: z.infer<typeof ResponseSchema> | null = null;
     let lastError: unknown = null;
     for (let attempt = 0; attempt < 2 && !validated; attempt++) {
