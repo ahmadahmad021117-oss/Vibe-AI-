@@ -36,43 +36,67 @@ final class OnboardingState: Codable {
     init() {}
 
     nonisolated init(from decoder: Decoder) throws {
+        // Decode into locals first — `Decoder` is non-isolated, but the property
+        // assignments below cross into MainActor territory.
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        goal = try c.decodeIfPresent(GoalType.self, forKey: .goal)
-        unitsPref = try c.decodeIfPresent(UnitsPref.self, forKey: .unitsPref) ?? .metric
-        currentWeightKg = try c.decodeIfPresent(Double.self, forKey: .currentWeightKg)
-        goalWeightKg = try c.decodeIfPresent(Double.self, forKey: .goalWeightKg)
-        pace = try c.decodeIfPresent(Pace.self, forKey: .pace) ?? .medium
-        age = try c.decodeIfPresent(Int.self, forKey: .age)
-        sex = try c.decodeIfPresent(SexType.self, forKey: .sex)
-        heightCm = try c.decodeIfPresent(Double.self, forKey: .heightCm)
-        healthSyncEnabled = try c.decodeIfPresent(Bool.self, forKey: .healthSyncEnabled) ?? false
-        trainingDaysPerWeek = try c.decodeIfPresent(Int.self, forKey: .trainingDaysPerWeek)
-        mainFocus = try c.decodeIfPresent(MainFocus.self, forKey: .mainFocus)
-        mealsPerDay = try c.decodeIfPresent(Int.self, forKey: .mealsPerDay)
-        dietaryPref = try c.decodeIfPresent(DietaryPref.self, forKey: .dietaryPref) ?? .normal
-        mealSuggestionsEnabled = try c.decodeIfPresent(Bool.self, forKey: .mealSuggestionsEnabled) ?? true
-        notificationPref = try c.decodeIfPresent(NotificationPref.self, forKey: .notificationPref) ?? .important
-        step = try c.decodeIfPresent(OnboardingStep.self, forKey: .step) ?? .goal
+        let goal = try c.decodeIfPresent(GoalType.self, forKey: .goal)
+        let unitsPref = try c.decodeIfPresent(UnitsPref.self, forKey: .unitsPref) ?? .metric
+        let currentWeightKg = try c.decodeIfPresent(Double.self, forKey: .currentWeightKg)
+        let goalWeightKg = try c.decodeIfPresent(Double.self, forKey: .goalWeightKg)
+        let pace = try c.decodeIfPresent(Pace.self, forKey: .pace) ?? .medium
+        let age = try c.decodeIfPresent(Int.self, forKey: .age)
+        let sex = try c.decodeIfPresent(SexType.self, forKey: .sex)
+        let heightCm = try c.decodeIfPresent(Double.self, forKey: .heightCm)
+        let healthSyncEnabled = try c.decodeIfPresent(Bool.self, forKey: .healthSyncEnabled) ?? false
+        let trainingDaysPerWeek = try c.decodeIfPresent(Int.self, forKey: .trainingDaysPerWeek)
+        let mainFocus = try c.decodeIfPresent(MainFocus.self, forKey: .mainFocus)
+        let mealsPerDay = try c.decodeIfPresent(Int.self, forKey: .mealsPerDay)
+        let dietaryPref = try c.decodeIfPresent(DietaryPref.self, forKey: .dietaryPref) ?? .normal
+        let mealSuggestionsEnabled = try c.decodeIfPresent(Bool.self, forKey: .mealSuggestionsEnabled) ?? true
+        let notificationPref = try c.decodeIfPresent(NotificationPref.self, forKey: .notificationPref) ?? .important
+        let step = try c.decodeIfPresent(OnboardingStep.self, forKey: .step) ?? .goal
+        // Decoding is only ever invoked from `restore()`, which is MainActor-isolated.
+        MainActor.assumeIsolated {
+            self.goal = goal
+            self.unitsPref = unitsPref
+            self.currentWeightKg = currentWeightKg
+            self.goalWeightKg = goalWeightKg
+            self.pace = pace
+            self.age = age
+            self.sex = sex
+            self.heightCm = heightCm
+            self.healthSyncEnabled = healthSyncEnabled
+            self.trainingDaysPerWeek = trainingDaysPerWeek
+            self.mainFocus = mainFocus
+            self.mealsPerDay = mealsPerDay
+            self.dietaryPref = dietaryPref
+            self.mealSuggestionsEnabled = mealSuggestionsEnabled
+            self.notificationPref = notificationPref
+            self.step = step
+        }
     }
 
-    func encode(to encoder: Encoder) throws {
-        var c = encoder.container(keyedBy: CodingKeys.self)
-        try c.encodeIfPresent(goal, forKey: .goal)
-        try c.encode(unitsPref, forKey: .unitsPref)
-        try c.encodeIfPresent(currentWeightKg, forKey: .currentWeightKg)
-        try c.encodeIfPresent(goalWeightKg, forKey: .goalWeightKg)
-        try c.encode(pace, forKey: .pace)
-        try c.encodeIfPresent(age, forKey: .age)
-        try c.encodeIfPresent(sex, forKey: .sex)
-        try c.encodeIfPresent(heightCm, forKey: .heightCm)
-        try c.encode(healthSyncEnabled, forKey: .healthSyncEnabled)
-        try c.encodeIfPresent(trainingDaysPerWeek, forKey: .trainingDaysPerWeek)
-        try c.encodeIfPresent(mainFocus, forKey: .mainFocus)
-        try c.encodeIfPresent(mealsPerDay, forKey: .mealsPerDay)
-        try c.encode(dietaryPref, forKey: .dietaryPref)
-        try c.encode(mealSuggestionsEnabled, forKey: .mealSuggestionsEnabled)
-        try c.encode(notificationPref, forKey: .notificationPref)
-        try c.encode(step, forKey: .step)
+    nonisolated func encode(to encoder: Encoder) throws {
+        // Encoding is only ever invoked from `persist()`, which is MainActor-isolated.
+        try MainActor.assumeIsolated {
+            var c = encoder.container(keyedBy: CodingKeys.self)
+            try c.encodeIfPresent(goal, forKey: .goal)
+            try c.encode(unitsPref, forKey: .unitsPref)
+            try c.encodeIfPresent(currentWeightKg, forKey: .currentWeightKg)
+            try c.encodeIfPresent(goalWeightKg, forKey: .goalWeightKg)
+            try c.encode(pace, forKey: .pace)
+            try c.encodeIfPresent(age, forKey: .age)
+            try c.encodeIfPresent(sex, forKey: .sex)
+            try c.encodeIfPresent(heightCm, forKey: .heightCm)
+            try c.encode(healthSyncEnabled, forKey: .healthSyncEnabled)
+            try c.encodeIfPresent(trainingDaysPerWeek, forKey: .trainingDaysPerWeek)
+            try c.encodeIfPresent(mainFocus, forKey: .mainFocus)
+            try c.encodeIfPresent(mealsPerDay, forKey: .mealsPerDay)
+            try c.encode(dietaryPref, forKey: .dietaryPref)
+            try c.encode(mealSuggestionsEnabled, forKey: .mealSuggestionsEnabled)
+            try c.encode(notificationPref, forKey: .notificationPref)
+            try c.encode(step, forKey: .step)
+        }
     }
 
     // MARK: - Progress
