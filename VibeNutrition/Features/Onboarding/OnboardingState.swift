@@ -35,7 +35,7 @@ final class OnboardingState: Codable {
 
     init() {}
 
-    init(from decoder: Decoder) throws {
+    nonisolated init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         goal = try c.decodeIfPresent(GoalType.self, forKey: .goal)
         unitsPref = try c.decodeIfPresent(UnitsPref.self, forKey: .unitsPref) ?? .metric

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DashboardView: View {
     @State private var vm = DashboardViewModel()
+    @State private var network = NetworkStatus.shared
     @State private var showingScan = false
     @State private var showingManualEntry = false
     @State private var showingWeightCheckIn = false
@@ -13,19 +14,24 @@ struct DashboardView: View {
         ZStack {
             Theme.Palette.bg.ignoresSafeArea()
 
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: Theme.Spacing.lg) {
-                    header
-                    ringCard
-                    nutrientPager
-                    actionsRow
-                    todaySection
-                    Spacer(minLength: 80)
+            VStack(spacing: 0) {
+                if !network.isOnline {
+                    offlineBanner
                 }
-                .padding(.horizontal, Theme.Spacing.lg)
-                .padding(.top, Theme.Spacing.sm)
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: Theme.Spacing.lg) {
+                        header
+                        ringCard
+                        nutrientPager
+                        actionsRow
+                        todaySection
+                        Spacer(minLength: 80)
+                    }
+                    .padding(.horizontal, Theme.Spacing.lg)
+                    .padding(.top, Theme.Spacing.sm)
+                }
+                .refreshable { await vm.load() }
             }
-            .refreshable { await vm.load() }
         }
         .task { await vm.load() }
         .fullScreenCover(isPresented: $showingScan) {
@@ -44,8 +50,26 @@ struct DashboardView: View {
             WeightCheckInSheet { showingWeightCheckIn = false }
         }
         .sheet(isPresented: $showingProfile) { ProfileView() }
-        .sheet(isPresented: $showingWeekly) { WeeklyProgressView() }
+        .sheet(isPresented: $showingWeekly, onDismiss: { Task { await vm.load() } }) {
+            WeeklyProgressView()
+        }
         .preferredColorScheme(.dark)
+    }
+
+    private var offlineBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "wifi.exclamationmark")
+                .font(.system(size: 13, weight: .semibold))
+            Text("Offline — changes will sync when you reconnect.")
+                .font(Theme.Typo.caption)
+        }
+        .foregroundStyle(Theme.Palette.warning)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .padding(.horizontal, Theme.Spacing.lg)
+        .background(Theme.Palette.surface)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Offline. Changes will sync when you reconnect.")
     }
 
     private var header: some View {
@@ -411,4 +435,10 @@ private struct LogRow: View {
         f.timeStyle = .short
         return f.string(from: log.loggedAt)
     }
+}
+
+#Preview {
+    // Loads from Supabase on appear; preview shows the empty/loading layout.
+    DashboardView()
+        .preferredColorScheme(.dark)
 }

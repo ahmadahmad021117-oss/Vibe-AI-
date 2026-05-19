@@ -1,0 +1,4 @@
+app_identifier("com.vibe.nutrition")
+# Apple ID + team ID are resolved from the App Store Connect API key
+# (see APP_STORE_CONNECT_API_KEY_* env vars in Fastfile), so this file
+# intentionally does not pin them.

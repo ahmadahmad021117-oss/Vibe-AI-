@@ -1,5 +1,10 @@
 import SwiftUI
 
+#Preview {
+    HealthSyncScreen(state: OnboardingState())
+        .preferredColorScheme(.dark)
+}
+
 struct HealthSyncScreen: View {
     @Bindable var state: OnboardingState
 

@@ -56,3 +56,18 @@ struct OptionCard: View {
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
 }
+
+#Preview {
+    VStack(spacing: 12) {
+        OptionCard(title: "Lose weight",
+                   subtitle: "Drop body fat steadily",
+                   systemImage: "arrow.down.right",
+                   isSelected: true) {}
+        OptionCard(title: "Maintain weight",
+                   systemImage: "equal.circle",
+                   isSelected: false) {}
+    }
+    .padding()
+    .background(Theme.Palette.bg)
+    .preferredColorScheme(.dark)
+}

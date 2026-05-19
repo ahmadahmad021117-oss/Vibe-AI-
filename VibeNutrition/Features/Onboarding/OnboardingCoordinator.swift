@@ -38,3 +38,10 @@ struct OnboardingCoordinator: View {
         .preferredColorScheme(.dark)
     }
 }
+
+#Preview {
+    // Restores OnboardingState from UserDefaults; in a fresh preview that's
+    // an empty state starting at the goal step.
+    OnboardingCoordinator { _ in }
+        .preferredColorScheme(.dark)
+}

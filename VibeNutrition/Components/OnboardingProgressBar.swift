@@ -17,3 +17,15 @@ struct OnboardingProgressBar: View {
         .animation(.easeInOut(duration: Theme.Motion.base), value: progress)
     }
 }
+
+#Preview {
+    VStack(spacing: 16) {
+        OnboardingProgressBar(progress: 0.0)
+        OnboardingProgressBar(progress: 0.35)
+        OnboardingProgressBar(progress: 0.75)
+        OnboardingProgressBar(progress: 1.0)
+    }
+    .padding()
+    .background(Theme.Palette.bg)
+    .preferredColorScheme(.dark)
+}

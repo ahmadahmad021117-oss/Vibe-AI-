@@ -33,6 +33,27 @@ struct PrimaryButton: View {
     }
 }
 
+#Preview("Primary / enabled") {
+    PrimaryButton(title: "Continue") {}
+        .padding()
+        .background(Theme.Palette.bg)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Primary / disabled") {
+    PrimaryButton(title: "Continue", isEnabled: false) {}
+        .padding()
+        .background(Theme.Palette.bg)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Secondary") {
+    SecondaryButton(title: "Restore") {}
+        .padding()
+        .background(Theme.Palette.bg)
+        .preferredColorScheme(.dark)
+}
+
 struct SecondaryButton: View {
     let title: String
     let action: () -> Void

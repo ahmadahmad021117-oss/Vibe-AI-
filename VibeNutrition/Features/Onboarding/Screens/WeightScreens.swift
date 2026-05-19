@@ -3,6 +3,18 @@ import SwiftUI
 private func kgToLb(_ kg: Double) -> Double { kg * 2.2046226218 }
 private func lbToKg(_ lb: Double) -> Double { lb / 2.2046226218 }
 
+#Preview("Current weight") {
+    CurrentWeightScreen(state: OnboardingState())
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Goal weight") {
+    let state = OnboardingState()
+    state.currentWeightKg = 75
+    return GoalWeightScreen(state: state)
+        .preferredColorScheme(.dark)
+}
+
 struct CurrentWeightScreen: View {
     @Bindable var state: OnboardingState
 

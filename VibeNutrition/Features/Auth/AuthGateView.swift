@@ -85,7 +85,7 @@ struct AuthGateView: View {
                 try await AuthService.shared.signIn(email: email, password: password)
                 onAuthenticated()
             } catch {
-                self.error = error.localizedDescription
+                self.error = error.friendlyMessage
             }
         }
     }
@@ -114,13 +114,13 @@ struct AuthGateView: View {
                     try await AuthService.shared.signInWithApple(idToken: token, nonce: nonce)
                     onAuthenticated()
                 } catch {
-                    self.error = error.localizedDescription
+                    self.error = error.friendlyMessage
                 }
             }
         case .failure(let err):
             // Cancellation is not an error worth surfacing.
             if (err as NSError).code != ASAuthorizationError.canceled.rawValue {
-                error = err.localizedDescription
+                error = err.friendlyMessage
             }
         }
     }
@@ -153,4 +153,9 @@ struct AuthGateView: View {
         let hash = SHA256.hash(data: data)
         return hash.map { String(format: "%02x", $0) }.joined()
     }
+}
+
+#Preview {
+    AuthGateView(onAuthenticated: {})
+        .preferredColorScheme(.dark)
 }

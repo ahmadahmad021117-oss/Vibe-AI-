@@ -151,8 +151,15 @@ struct MealSuggestionsSheet: View {
             suggestions = resp.suggestions
             loading = false
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.friendlyMessage
             loading = false
         }
     }
+}
+
+#Preview {
+    // Suggestions come from the suggest-meals edge function on appear;
+    // the preview shows the loading spinner with the remaining-macros chip.
+    MealSuggestionsSheet(remaining: .init(kcal: 620, protein: 38, carbs: 65, fat: 22))
+        .preferredColorScheme(.dark)
 }

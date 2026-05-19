@@ -38,3 +38,12 @@ supabase/.temp/
 
 # Claude Code local working dirs
 .claude/
+
+# Fastlane / Bundler
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+fastlane/README.md
+.bundle/
+vendor/bundle/

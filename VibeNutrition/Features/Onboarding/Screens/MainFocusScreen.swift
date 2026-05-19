@@ -1,5 +1,10 @@
 import SwiftUI
 
+#Preview {
+    MainFocusScreen(state: OnboardingState())
+        .preferredColorScheme(.dark)
+}
+
 struct MainFocusScreen: View {
     @Bindable var state: OnboardingState
 

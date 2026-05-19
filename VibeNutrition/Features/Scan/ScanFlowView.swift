@@ -46,7 +46,7 @@ struct ScanFlowView: View {
             let result = try await FoodScanService.shared.analyze(imageData: data)
             stage = .review(data, result.path, result.food)
         } catch {
-            stage = .failed(error.localizedDescription)
+            stage = .failed(error.friendlyMessage)
         }
     }
 }

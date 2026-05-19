@@ -1,5 +1,10 @@
 import SwiftUI
 
+#Preview {
+    NotificationsScreen(state: OnboardingState())
+        .preferredColorScheme(.dark)
+}
+
 struct NotificationsScreen: View {
     @Bindable var state: OnboardingState
 

@@ -80,3 +80,10 @@ struct PlanGenerationView: View {
         .animation(.easeInOut(duration: Theme.Motion.base), value: generator.stage)
     }
 }
+
+#Preview {
+    // The view kicks off PlanGenerator on appear, which hits Supabase. The
+    // preview is therefore most useful for the static loading layout —
+    // pulse animation + progress bar.
+    PlanGenerationView(onboarding: nil) { _, _ in }
+}

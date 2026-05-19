@@ -89,7 +89,7 @@ final class PlanGenerator {
 
             stage = .ready
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.friendlyMessage
             stage = .failed
         }
     }
@@ -139,7 +139,11 @@ final class PlanGenerator {
         else {
             throw NSError(
                 domain: "PlanGenerator", code: -1,
-                userInfo: [NSLocalizedDescriptionKey: "Missing profile data. Complete onboarding first."]
+                userInfo: [NSLocalizedDescriptionKey: String(
+                    localized: "plan.error.missing_profile",
+                    defaultValue: "Missing profile data. Complete onboarding first.",
+                    comment: "Shown when the plan generator can't find required onboarding answers"
+                )]
             )
         }
 
