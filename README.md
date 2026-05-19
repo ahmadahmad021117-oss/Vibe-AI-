@@ -75,7 +75,13 @@ XcodeGen will read `project.yml` and produce a clean `.xcodeproj` with all sourc
 
 ### 3. Configure secrets
 
-Fill in `VibeNutrition/Resources/Secrets.plist` (already in `.gitignore` patterns — **do not commit real keys**):
+Copy the template and fill in real values — the destination is `.gitignore`d, so real keys never reach git:
+
+```bash
+cp VibeNutrition/Resources/Secrets.example.plist VibeNutrition/Resources/Secrets.plist
+```
+
+Then edit `Secrets.plist` and replace the placeholders:
 
 ```xml
 <key>SUPABASE_URL</key>          <string>https://YOUR.supabase.co</string>

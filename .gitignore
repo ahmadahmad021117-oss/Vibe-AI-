@@ -33,6 +33,9 @@ Pods/
 .env.local
 .env.*.local
 
+# Local secrets — copy Secrets.example.plist → Secrets.plist and fill in real values.
+VibeNutrition/Resources/Secrets.plist
+
 # Supabase CLI
 supabase/.temp/
 
