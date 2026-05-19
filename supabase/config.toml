@@ -17,3 +17,7 @@ verify_jwt = true
 
 [functions.weekly-progress]
 verify_jwt = true
+
+# Cron-invoked cleanup — auth via shared CLEANUP_SECRET in Authorization header.
+[functions.cleanup-food-scans]
+verify_jwt = false

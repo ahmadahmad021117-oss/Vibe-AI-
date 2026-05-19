@@ -55,7 +55,11 @@ final class FoodScanService {
         try await EntitlementService.shared.assertCanScan()
 
         let timestamp = Int(Date().timeIntervalSince1970)
-        let path = "\(userId.uuidString)/\(timestamp).jpg"
+        // Lowercase the UUID: Swift's UUID.uuidString is uppercase, but Supabase Storage RLS
+        // policies (and the edge function's path-ownership check) compare against
+        // auth.uid()::text which is lowercase. Without this, every upload INSERT is rejected
+        // with "new row violates row-level security policy".
+        let path = "\(userId.uuidString.lowercased())/\(timestamp).jpg"
 
         do {
             _ = try await SupabaseService.shared.storage
