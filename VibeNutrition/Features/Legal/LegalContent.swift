@@ -1,12 +1,13 @@
 import Foundation
 
 /// Static, in-app legal copy. Reviewed against the iOS schema + edge functions actually shipped.
-/// Replace `[COMPANY_NAME]` and `[CONTACT_EMAIL]` with the legal entity owning VibeCal before launch.
+/// Update `companyPlaceholder` / `contactPlaceholder` if the controlling entity or contact changes
+/// (e.g. when a registered company is formed and replaces sole-proprietor naming).
 enum LegalContent {
     static let appName = "VibeCal"
-    static let companyPlaceholder = "[COMPANY_NAME]"
-    static let contactPlaceholder = "[CONTACT_EMAIL]"
-    static let lastUpdated = "May 17, 2026"
+    static let companyPlaceholder = "Ahmad Ahmad"
+    static let contactPlaceholder = "Ahmad.ahmad021117@gmail.com"
+    static let lastUpdated = "May 20, 2026"
 
     // MARK: - FAQ
 
