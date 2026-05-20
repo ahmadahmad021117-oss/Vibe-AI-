@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VibeCal — Privacy Policy</title>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #1a1a26;
+      --text: #f5f5fa;
+      --muted: #9aa0b0;
+      --accent: #22d3ee;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.65;
+    }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 4rem;
+    }
+    nav {
+      margin-bottom: 2.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid #2a2a38;
+      font-size: 0.95rem;
+    }
+    nav a {
+      color: var(--accent);
+      text-decoration: none;
+      margin-right: 1rem;
+    }
+    nav a:hover { text-decoration: underline; }
+    h1 {
+      font-size: 2.25rem;
+      margin: 0 0 0.5rem 0;
+      font-weight: 800;
+    }
+    h2 {
+      font-size: 1.35rem;
+      margin: 2.5rem 0 0.75rem 0;
+      color: var(--text);
+    }
+    h3 {
+      font-size: 1.05rem;
+      margin: 1.5rem 0 0.25rem 0;
+      color: var(--text);
+    }
+    .meta {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-bottom: 2rem;
+    }
+    p, li {
+      color: #d4d6dd;
+    }
+    ul {
+      padding-left: 1.5rem;
+    }
+    li {
+      margin: 0.35rem 0;
+    }
+    a {
+      color: var(--accent);
+    }
+    footer {
+      margin-top: 4rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid #2a2a38;
+      color: var(--muted);
+      font-size: 0.875rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <nav>
+      <a href="./">Home</a>
+      <a href="./privacy.html">Privacy</a>
+      <a href="./terms.html">Terms</a>
+    </nav>
+
+    <h1>Privacy Policy</h1>
+    <p class="meta">Last updated: May 20, 2026</p>
+
+    <p>
+      Ahmad Ahmad ("we", "us") operates VibeCal (the "App"). This policy explains what
+      personal data the App collects, why, how we use it, and your rights under the EU
+      General Data Protection Regulation (GDPR) and other applicable laws.
+    </p>
+
+    <h2>1. Data we collect</h2>
+
+    <h3>Account &amp; auth</h3>
+    <ul>
+      <li>Email address (you provide this when you sign up, or it comes from Apple/Google when you use Sign in with Apple / Sign in with Google).</li>
+      <li>Authentication tokens issued by our backend provider (Supabase).</li>
+    </ul>
+
+    <h3>Profile &amp; goals</h3>
+    <ul>
+      <li>Age, biological sex, height, current weight, goal weight, selected pace, training days per week, dietary preference, meals per day, main focus, units preference.</li>
+      <li>These are required to compute a daily calorie &amp; macro target. We store them in our Postgres database (Supabase), in your row only.</li>
+    </ul>
+
+    <h3>Food logs</h3>
+    <ul>
+      <li>Each meal you log: items, grams, calories, macros, optional micronutrients, source (scan or manual), timestamp.</li>
+      <li>For scans, the photo you take is uploaded to encrypted storage and sent once to a vision AI model for analysis. Photos are scoped to your user folder; only you (and our servers) can access them.</li>
+    </ul>
+
+    <h3>Weight logs</h3>
+    <ul>
+      <li>Each weight check-in (kg + timestamp).</li>
+    </ul>
+
+    <h3>Health data (optional, requires explicit consent via iOS HealthKit)</h3>
+    <ul>
+      <li>Average daily steps (last 14 days) and active energy burned, used only to refine your activity multiplier. HealthKit data never leaves the device unless you explicitly sync it; raw samples are not uploaded.</li>
+    </ul>
+
+    <h3>Subscription &amp; purchase data</h3>
+    <ul>
+      <li>RevenueCat customer ID, current entitlement tier, expiry date, product identifier of the active purchase.</li>
+    </ul>
+
+    <h3>Marketing email (only if you opt in)</h3>
+    <ul>
+      <li>If you check the marketing opt-in box in Settings, we store the email address you provided, the opt-in flag, and the timestamp of your consent so we can prove it.</li>
+      <li>You can withdraw consent at any time from the same screen; we will stop sending marketing email and update your record.</li>
+    </ul>
+
+    <h3>Analytics &amp; diagnostics</h3>
+    <ul>
+      <li>Standard, anonymous Apple App Store diagnostics. We do not run third-party analytics SDKs that track you across apps.</li>
+    </ul>
+
+    <h2>2. How we use your data</h2>
+    <ul>
+      <li>Compute and display your daily targets and progress.</li>
+      <li>Save and replay your food and weight logs.</li>
+      <li>Analyze the photos you submit, only for the purpose of identifying that one meal.</li>
+      <li>Enforce the free-scan limit and unlock premium features after a valid purchase.</li>
+      <li>Send the notifications you've opted into.</li>
+      <li>Send marketing email only if you explicitly opted in.</li>
+    </ul>
+
+    <h2>3. Legal bases (GDPR)</h2>
+    <ul>
+      <li><strong>Performance of a contract:</strong> providing the app you signed up for.</li>
+      <li><strong>Consent:</strong> HealthKit access, push notifications, marketing email. Each is opt-in and revocable from Settings or iOS Settings.</li>
+      <li><strong>Legitimate interests:</strong> keeping the service running and secure, preventing abuse.</li>
+    </ul>
+
+    <h2>4. Sharing</h2>
+    <ul>
+      <li><strong>Supabase</strong> (database, auth, storage, edge functions) — our backend provider.</li>
+      <li><strong>Anthropic</strong> — receives the single photo you submit during food scanning, analyzes it once, and returns a JSON breakdown. Not used to train Anthropic's models (per their API data policy for paid users).</li>
+      <li><strong>RevenueCat</strong> — processes subscription state.</li>
+      <li><strong>Apple</strong> — Sign in with Apple, App Store payments, HealthKit (on-device).</li>
+      <li><strong>Google</strong> — only if you use Sign in with Google.</li>
+    </ul>
+    <p>We do not sell your personal data to anyone.</p>
+
+    <h2>5. International transfers</h2>
+    <p>
+      Our backend may be hosted in regions outside your country. Where data leaves the
+      EEA / UK, we rely on Standard Contractual Clauses or equivalent safeguards.
+    </p>
+
+    <h2>6. Retention</h2>
+    <p>
+      We keep your data until you delete your account. Deletion is immediate and irreversible
+      via Profile → Delete my account, which also removes your storage objects and auth row.
+    </p>
+
+    <h2>7. Your rights</h2>
+    <p>
+      Under GDPR you have the right to access, correct, delete, restrict, or object to the
+      processing of your personal data, and the right to data portability. You can:
+    </p>
+    <ul>
+      <li><strong>Export your data:</strong> Profile → Your data → Export as JSON.</li>
+      <li><strong>Delete your data:</strong> Profile → Danger zone → Delete my account.</li>
+      <li>Email us at <a href="mailto:Ahmad.ahmad021117@gmail.com">Ahmad.ahmad021117@gmail.com</a> for anything else.</li>
+    </ul>
+
+    <h2>8. Children</h2>
+    <p>
+      VibeCal is not directed at children under 13. We will not knowingly create an account
+      for a child under 13 (we ask for your age during onboarding and reject ages below 13).
+      If you believe a child has signed up, contact
+      <a href="mailto:Ahmad.ahmad021117@gmail.com">Ahmad.ahmad021117@gmail.com</a>.
+    </p>
+
+    <h2>9. Security</h2>
+    <p>
+      Data in transit is encrypted with TLS. Data at rest is encrypted by our cloud provider.
+      Row-level security in Postgres restricts every table so users can only read or write
+      their own rows. Scan photos sit in storage policies scoped to your user folder.
+    </p>
+
+    <h2>10. Changes to this policy</h2>
+    <p>
+      We'll update this page (and the "Last updated" date above) when material changes occur,
+      and notify you in-app for significant changes.
+    </p>
+
+    <h2>11. Contact</h2>
+    <p>
+      <strong>Data controller:</strong> Ahmad Ahmad<br>
+      <strong>Contact email:</strong> <a href="mailto:Ahmad.ahmad021117@gmail.com">Ahmad.ahmad021117@gmail.com</a>
+    </p>
+
+    <footer>
+      © 2026 Ahmad Ahmad. VibeCal.
+    </footer>
+  </div>
+</body>
+</html>

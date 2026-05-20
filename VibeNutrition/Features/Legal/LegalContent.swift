@@ -141,8 +141,9 @@ enum LegalContent {
 
     4. Sharing
       • Supabase (database, auth, storage, edge functions) — our backend provider.
-      • OpenAI — receives the single photo you submit and your prompt during food scanning;
-        not used to train models for us.
+      • Anthropic — receives the single photo you submit during food scanning, analyzes it
+        once, and returns a JSON breakdown. Not used to train Anthropic's models (per their
+        API data policy for paid users).
       • RevenueCat — processes subscription state.
       • Apple — Sign in with Apple, App Store payments, HealthKit (on-device).
       • Google — only if you use Sign in with Google.
