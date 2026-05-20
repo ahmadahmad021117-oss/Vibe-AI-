@@ -10,6 +10,8 @@ struct AuthGateView: View {
     @State private var error: String?
     @State private var isLoading = false
     @State private var currentNonce: String?
+    /// Email form starts collapsed — most users sign in with Apple. Reveals on tap.
+    @State private var showingEmailForm = false
 
     var body: some View {
         ZStack {
@@ -17,58 +19,102 @@ struct AuthGateView: View {
 
             VStack(spacing: Theme.Spacing.lg) {
                 Spacer()
+                hero
+                Spacer()
 
-                VStack(spacing: Theme.Spacing.sm) {
-                    Image(systemName: "bolt.fill")
-                        .font(.system(size: 48, weight: .heavy))
-                        .foregroundStyle(Theme.Gradients.accent)
-                    Text("Welcome to VibeCal")
-                        .font(Theme.Typo.h1)
-                        .foregroundStyle(Theme.Palette.text)
-                    Text("Your AI calorie coach.")
-                        .font(Theme.Typo.body)
-                        .foregroundStyle(Theme.Palette.textMuted)
-                }
-
-                VStack(spacing: Theme.Spacing.sm) {
-                    TextField("", text: $email, prompt: Text("Email").foregroundStyle(Theme.Palette.textDim))
-                        .textContentType(.emailAddress)
-                        .keyboardType(.emailAddress)
-                        .autocapitalization(.none)
-                        .padding()
-                        .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.md))
-                        .foregroundStyle(Theme.Palette.text)
-
-                    SecureField("", text: $password, prompt: Text("Password").foregroundStyle(Theme.Palette.textDim))
-                        .textContentType(.password)
-                        .padding()
-                        .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.md))
-                        .foregroundStyle(Theme.Palette.text)
-                }
-
-                if let error {
-                    Text(error)
-                        .font(Theme.Typo.caption)
-                        .foregroundStyle(Theme.Palette.danger)
-                }
-
-                PrimaryButton(title: isLoading ? "Signing in…" : "Continue with email",
-                              isEnabled: !isLoading && !email.isEmpty && !password.isEmpty) {
-                    Task { await emailSignIn() }
-                }
-
+                // Primary CTA: Sign in with Apple. Always visible, always dominant.
                 SignInWithAppleButton(
                     onRequest: configureAppleRequest,
                     onCompletion: handleAppleCompletion
                 )
                 .signInWithAppleButtonStyle(.white)
-                .frame(height: 52)
+                .frame(height: 56)
                 .cornerRadius(Theme.Radii.lg)
 
-                Spacer()
+                if showingEmailForm {
+                    emailForm
+                } else {
+                    revealEmailButton
+                }
+
+                Spacer().frame(height: Theme.Spacing.lg)
             }
             .padding(.horizontal, Theme.Spacing.lg)
+            .animation(Theme.Motion.spring, value: showingEmailForm)
         }
+    }
+
+    private var hero: some View {
+        VStack(spacing: Theme.Spacing.sm) {
+            Image(systemName: "bolt.fill")
+                .font(.system(size: 56, weight: .heavy))
+                .foregroundStyle(Theme.Gradients.accent)
+            Text("Welcome to VibeCal")
+                .font(Theme.Typo.h1)
+                .foregroundStyle(Theme.Palette.text)
+            Text("Your AI calorie coach.")
+                .font(Theme.Typo.body)
+                .foregroundStyle(Theme.Palette.textMuted)
+        }
+    }
+
+    private var revealEmailButton: some View {
+        Button {
+            Haptics.tapLight()
+            showingEmailForm = true
+        } label: {
+            Text("Continue with email")
+                .font(Theme.Typo.bodyBold)
+                .foregroundStyle(Theme.Palette.textMuted)
+                .padding(.vertical, Theme.Spacing.sm)
+        }
+        .accessibilityLabel("Continue with email instead")
+    }
+
+    private var emailForm: some View {
+        VStack(spacing: Theme.Spacing.sm) {
+            // "or use email" divider
+            HStack(spacing: Theme.Spacing.md) {
+                Rectangle()
+                    .fill(Theme.Palette.border)
+                    .frame(height: 1)
+                Text("or use email")
+                    .font(Theme.Typo.caption)
+                    .foregroundStyle(Theme.Palette.textMuted)
+                Rectangle()
+                    .fill(Theme.Palette.border)
+                    .frame(height: 1)
+            }
+            .padding(.bottom, Theme.Spacing.xs)
+
+            TextField("", text: $email, prompt: Text("Email").foregroundStyle(Theme.Palette.textDim))
+                .textContentType(.emailAddress)
+                .keyboardType(.emailAddress)
+                .autocapitalization(.none)
+                .padding()
+                .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.md))
+                .foregroundStyle(Theme.Palette.text)
+
+            SecureField("", text: $password, prompt: Text("Password").foregroundStyle(Theme.Palette.textDim))
+                .textContentType(.password)
+                .padding()
+                .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.md))
+                .foregroundStyle(Theme.Palette.text)
+
+            if let error {
+                Text(error)
+                    .font(Theme.Typo.caption)
+                    .foregroundStyle(Theme.Palette.danger)
+                    .multilineTextAlignment(.center)
+            }
+
+            SecondaryButton(title: isLoading ? "Signing in…" : "Continue") {
+                Task { await emailSignIn() }
+            }
+            .disabled(isLoading || email.isEmpty || password.isEmpty)
+            .opacity((isLoading || email.isEmpty || password.isEmpty) ? 0.5 : 1)
+        }
+        .transition(.opacity.combined(with: .move(edge: .bottom)))
     }
 
     private func emailSignIn() async {
