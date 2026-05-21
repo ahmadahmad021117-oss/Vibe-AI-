@@ -4,19 +4,13 @@ struct ProfileView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var profile: Profile?
-    @State private var latestGoal: Goal?
-    @State private var latestWeight: WeightLog?
     @State private var notificationPref: NotificationPref = .important
-    @State private var pace: Pace = .medium
 
-    // Edit sheets / inline pickers
     @State private var showingDeleteConfirm = false
     @State private var deleting = false
     @State private var error: String?
     @State private var exportURL: URL?
 
-    @State private var showingEditWeight = false
-    @State private var showingEditGoalWeight = false
     @State private var showingFAQ = false
     @State private var showingPrivacy = false
     @State private var showingTerms = false
@@ -26,13 +20,10 @@ struct ProfileView: View {
         ZStack {
             Theme.Palette.bg.ignoresSafeArea()
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: Theme.Spacing.lg) {
+                VStack(alignment: .leading, spacing: Theme.Spacing.md) {
                     header
                     accountSection
                     subscriptionSection
-                    goalSection
-                    paceSection
-                    projectionSection
                     notificationsSection
                     dataSection
                     legalSection
@@ -65,22 +56,6 @@ struct ProfileView: View {
         .sheet(isPresented: $showingFAQ) { FAQView() }
         .sheet(isPresented: $showingPrivacy) { PrivacyPolicyView() }
         .sheet(isPresented: $showingTerms) { TermsOfServiceView() }
-        .sheet(isPresented: $showingEditWeight) {
-            EditWeightSheet(
-                title: "Update current weight",
-                initialKg: latestWeight?.weightKg ?? latestGoal?.startWeightKg ?? 70
-            ) { newKg in
-                Task { await saveCurrentWeight(newKg) }
-            }
-        }
-        .sheet(isPresented: $showingEditGoalWeight) {
-            EditWeightSheet(
-                title: "Update goal weight",
-                initialKg: latestGoal?.goalWeightKg ?? 70
-            ) { newKg in
-                Task { await saveGoalWeight(newKg) }
-            }
-        }
         .sheet(isPresented: $showingEmailSheet) {
             MarketingEmailSheet(
                 initialEmail: profile?.marketingEmail ?? AuthService.shared.session?.user.email ?? "",
@@ -93,7 +68,7 @@ struct ProfileView: View {
 
     private var header: some View {
         HStack {
-            Text("Profile")
+            Text("Settings")
                 .font(Theme.Typo.h1)
                 .foregroundStyle(Theme.Palette.text)
             Spacer()
@@ -102,9 +77,9 @@ struct ProfileView: View {
                 dismiss()
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Theme.Palette.textMuted)
-                    .frame(width: 36, height: 36)
+                    .frame(width: 32, height: 32)
                     .background(Theme.Palette.surface, in: Circle())
             }
         }
@@ -118,6 +93,8 @@ struct ProfileView: View {
                 Text(AuthService.shared.session?.user.email ?? "—")
                     .font(Theme.Typo.caption)
                     .foregroundStyle(Theme.Palette.textMuted)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
             }
             tappableRow(icon: "megaphone", label: marketingRowLabel) {
                 showingEmailSheet = true
@@ -157,76 +134,48 @@ struct ProfileView: View {
         }
     }
 
-    private var goalSection: some View {
-        section("Weight") {
-            tappableRow(icon: "scalemass", label: "Current weight") {
-                showingEditWeight = true
-            } trailing: {
-                Text(weightString(latestWeight?.weightKg ?? latestGoal?.startWeightKg))
-                    .font(Theme.Typo.caption)
-                    .foregroundStyle(Theme.Palette.textMuted)
-            }
-            tappableRow(icon: "target", label: "Goal weight") {
-                showingEditGoalWeight = true
-            } trailing: {
-                Text(weightString(latestGoal?.goalWeightKg))
-                    .font(Theme.Typo.caption)
-                    .foregroundStyle(Theme.Palette.textMuted)
-            }
-        }
-    }
-
-    private var paceSection: some View {
-        section("Pace") {
-            VStack(spacing: Theme.Spacing.sm) {
-                ForEach(Pace.allCases) { p in
-                    OptionCard(
-                        title: p.label,
-                        subtitle: p.subtitle,
-                        systemImage: paceIcon(p),
-                        isSelected: pace == p
-                    ) {
-                        pace = p
-                        Task { await savePace(p) }
-                    }
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var projectionSection: some View {
-        if let current = latestWeight?.weightKg ?? latestGoal?.startWeightKg,
-           let goal = latestGoal?.goalWeightKg {
-            section("Projection") {
-                WeightProjectionChart(
-                    currentKg: current,
-                    goalKg: goal,
-                    pace: pace,
-                    heightCm: profile?.heightCm
-                )
-            }
-        }
-    }
-
     private var notificationsSection: some View {
         section("Notifications") {
-            VStack(spacing: Theme.Spacing.sm) {
+            HStack(spacing: 6) {
                 ForEach(NotificationPref.allCases) { pref in
-                    OptionCard(
-                        title: pref.label,
-                        systemImage: iconFor(pref),
-                        isSelected: notificationPref == pref
-                    ) {
-                        notificationPref = pref
-                        Task {
-                            try? await ProfileService.shared.upsert(ProfilePatch(notificationPref: pref))
-                            await NotificationService.shared.apply(pref: pref)
-                        }
-                    }
+                    notificationChip(pref)
                 }
             }
+            .padding(4)
+            .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))
         }
+    }
+
+    private func notificationChip(_ pref: NotificationPref) -> some View {
+        let selected = notificationPref == pref
+        return Button {
+            Haptics.select()
+            notificationPref = pref
+            Task {
+                try? await ProfileService.shared.upsert(ProfilePatch(notificationPref: pref))
+                await NotificationService.shared.apply(pref: pref)
+            }
+        } label: {
+            VStack(spacing: 2) {
+                Image(systemName: iconFor(pref))
+                    .font(.system(size: 14, weight: .semibold))
+                Text(shortLabel(pref))
+                    .font(Theme.Typo.caption)
+                    .lineLimit(1)
+            }
+            .foregroundStyle(selected ? Theme.Palette.text : Theme.Palette.textMuted)
+            .frame(maxWidth: .infinity, minHeight: 40)
+            .background(
+                RoundedRectangle(cornerRadius: Theme.Radii.md, style: .continuous)
+                    .fill(selected ? Theme.Palette.surfaceHi : Color.clear)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.Radii.md, style: .continuous)
+                    .stroke(selected ? Theme.Palette.accent : Color.clear, lineWidth: 1.5)
+            )
+        }
+        .accessibilityLabel(pref.label)
+        .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
     }
 
     private var dataSection: some View {
@@ -251,15 +200,18 @@ struct ProfileView: View {
                 Haptics.warn()
                 showingDeleteConfirm = true
             } label: {
-                HStack(spacing: Theme.Spacing.md) {
+                HStack(spacing: Theme.Spacing.sm) {
                     Image(systemName: "trash.fill")
+                        .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Theme.Palette.danger)
+                        .frame(width: 20)
                     Text(deleting ? "Deleting…" : "Delete my account")
                         .font(Theme.Typo.bodyBold)
                         .foregroundStyle(Theme.Palette.danger)
                     Spacer()
                 }
-                .padding(Theme.Spacing.md)
+                .padding(.horizontal, Theme.Spacing.md)
+                .padding(.vertical, 10)
                 .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))
             }
             .disabled(deleting)
@@ -276,24 +228,19 @@ struct ProfileView: View {
         }
     }
 
-    private func paceIcon(_ pace: Pace) -> String {
-        switch pace {
-        case .slow:   return "tortoise.fill"
-        case .medium: return "figure.walk"
-        case .fast:   return "hare.fill"
+    private func shortLabel(_ pref: NotificationPref) -> String {
+        switch pref {
+        case .full: return "All"
+        case .important: return "Important"
+        case .off: return "Off"
         }
-    }
-
-    private func weightString(_ kg: Double?) -> String {
-        guard let kg else { return "—" }
-        return String(format: "%.1f kg", kg)
     }
 
     @ViewBuilder
     private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+        VStack(alignment: .leading, spacing: 6) {
             Text(title.uppercased())
-                .font(Theme.Typo.caption)
+                .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(Theme.Palette.textMuted)
                 .padding(.leading, 4)
             content()
@@ -302,23 +249,22 @@ struct ProfileView: View {
 
     @ViewBuilder
     private func row<Trailing: View>(icon: String, label: String, @ViewBuilder trailing: () -> Trailing) -> some View {
-        HStack(spacing: Theme.Spacing.md) {
+        HStack(spacing: Theme.Spacing.sm) {
             Image(systemName: icon)
-                .font(.system(size: 18, weight: .semibold))
+                .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(Theme.Palette.textMuted)
-                .frame(width: 24)
+                .frame(width: 20)
             Text(label)
                 .font(Theme.Typo.body)
                 .foregroundStyle(Theme.Palette.text)
             Spacer()
             trailing()
         }
-        .padding(Theme.Spacing.md)
+        .padding(.horizontal, Theme.Spacing.md)
+        .padding(.vertical, 10)
         .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))
     }
 
-    /// Real button-driven row so VoiceOver and tap targets actually work.
-    /// Overload without a trailing view (the chevron is shown either way).
     private func tappableRow(
         icon: String,
         label: String,
@@ -338,21 +284,22 @@ struct ProfileView: View {
             Haptics.tapLight()
             action()
         } label: {
-            HStack(spacing: Theme.Spacing.md) {
+            HStack(spacing: Theme.Spacing.sm) {
                 Image(systemName: icon)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Theme.Palette.textMuted)
-                    .frame(width: 24)
+                    .frame(width: 20)
                 Text(label)
                     .font(Theme.Typo.body)
                     .foregroundStyle(Theme.Palette.text)
                 Spacer()
                 trailing()
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(Theme.Palette.textDim)
             }
-            .padding(Theme.Spacing.md)
+            .padding(.horizontal, Theme.Spacing.md)
+            .padding(.vertical, 10)
             .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))
         }
         .accessibilityLabel(label)
@@ -361,17 +308,9 @@ struct ProfileView: View {
     // MARK: - Data ops
 
     private func load() async {
-        async let profileT = ProfileService.shared.fetchCurrent()
-        async let goalT    = GoalService.shared.fetchLatest()
-        async let weightT  = WeightLogService.shared.fetchLatest()
-        let profile  = try? await profileT
-        let goal     = try? await goalT
-        let weight   = try? await weightT
+        let profile = try? await ProfileService.shared.fetchCurrent()
         self.profile = profile
-        self.latestGoal = goal
-        self.latestWeight = weight
         self.notificationPref = profile?.notificationPref ?? .important
-        self.pace = profile?.pace ?? .medium
         await EntitlementService.shared.refresh()
     }
 
@@ -395,37 +334,6 @@ struct ProfileView: View {
         }
     }
 
-    private func saveCurrentWeight(_ kg: Double) async {
-        do {
-            try await WeightLogService.shared.write(weightKg: kg)
-            latestWeight = try await WeightLogService.shared.fetchLatest()
-            // Recompute kcal target: weight changed → BMR/TDEE change.
-            await recomputePlan()
-        } catch {
-            self.error = error.localizedDescription
-        }
-    }
-
-    private func saveGoalWeight(_ kg: Double) async {
-        do {
-            try await GoalService.shared.updateGoalWeight(kg)
-            latestGoal = try await GoalService.shared.fetchLatest()
-            await recomputePlan()
-        } catch {
-            self.error = error.localizedDescription
-        }
-    }
-
-    private func savePace(_ newPace: Pace) async {
-        do {
-            try await ProfileService.shared.upsert(ProfilePatch(pace: newPace))
-            profile?.pace = newPace
-            await recomputePlan()
-        } catch {
-            self.error = error.localizedDescription
-        }
-    }
-
     private func saveMarketingConsent(email: String, optIn: Bool) async {
         let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
         let nowISO = ISO8601DateFormatter().string(from: Date())
@@ -442,11 +350,6 @@ struct ProfileView: View {
         } catch {
             self.error = error.localizedDescription
         }
-    }
-
-    private func recomputePlan() async {
-        let gen = PlanGenerator()
-        await gen.run(using: nil)   // hydrates from Supabase, picks up new weight/pace/goal
     }
 }
 

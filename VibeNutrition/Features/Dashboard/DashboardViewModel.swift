@@ -8,8 +8,11 @@ final class DashboardViewModel {
     private(set) var todayLogs: [FoodLog] = []
     private(set) var streak: Int = 0
     private(set) var isLoading: Bool = true
-    private(set) var errorMessage: String?
+    var errorMessage: String?
     private(set) var profile: Profile?
+    private(set) var latestGoal: Goal?
+    private(set) var latestWeight: WeightLog?
+    var pace: Pace = .medium
 
     var kcalConsumed: Int { todayLogs.reduce(0) { $0 + $1.kcal } }
     var proteinConsumed: Double { todayLogs.reduce(0) { $0 + $1.proteinG } }
@@ -44,10 +47,16 @@ final class DashboardViewModel {
             async let logsTask = withRetry { try await FoodLogService.shared.fetchToday() }
             async let streakTask = withRetry { try await StreakService.shared.currentStreak() }
             async let profileTask = withRetry { try await ProfileService.shared.fetchCurrent() }
+            async let goalTask = withRetry { try await GoalService.shared.fetchLatest() }
+            async let weightTask = withRetry { try await WeightLogService.shared.fetchLatest() }
             self.target = try await targetTask
             self.todayLogs = try await logsTask
             self.streak = try await streakTask
-            self.profile = try await profileTask
+            let profile = try await profileTask
+            self.profile = profile
+            self.latestGoal = try await goalTask
+            self.latestWeight = try await weightTask
+            self.pace = profile?.pace ?? .medium
             self.errorMessage = nil
         } catch {
             self.errorMessage = error.friendlyMessage
@@ -61,5 +70,42 @@ final class DashboardViewModel {
         } catch {
             errorMessage = error.friendlyMessage
         }
+    }
+
+    func saveCurrentWeight(_ kg: Double) async {
+        do {
+            try await WeightLogService.shared.write(weightKg: kg)
+            latestWeight = try await WeightLogService.shared.fetchLatest()
+            await recomputePlan()
+        } catch {
+            errorMessage = error.friendlyMessage
+        }
+    }
+
+    func saveGoalWeight(_ kg: Double) async {
+        do {
+            try await GoalService.shared.updateGoalWeight(kg)
+            latestGoal = try await GoalService.shared.fetchLatest()
+            await recomputePlan()
+        } catch {
+            errorMessage = error.friendlyMessage
+        }
+    }
+
+    func savePace(_ newPace: Pace) async {
+        pace = newPace
+        do {
+            try await ProfileService.shared.upsert(ProfilePatch(pace: newPace))
+            profile?.pace = newPace
+            await recomputePlan()
+        } catch {
+            errorMessage = error.friendlyMessage
+        }
+    }
+
+    private func recomputePlan() async {
+        let gen = PlanGenerator()
+        await gen.run(using: nil)
+        self.target = try? await TargetService.shared.fetchLatest()
     }
 }
