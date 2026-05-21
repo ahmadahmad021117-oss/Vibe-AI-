@@ -76,6 +76,7 @@ struct WeightProjectionChart: View {
 
             chart
                 .frame(height: 200)
+                .clipped()
                 .accessibilityLabel("Weight projection chart")
                 .accessibilityValue(etaText)
 
@@ -124,7 +125,8 @@ struct WeightProjectionChart: View {
             RoundedRectangle(cornerRadius: Theme.Radii.lg, style: .continuous)
                 .stroke(Theme.Palette.border, lineWidth: 1)
         )
-        .animation(Theme.Motion.spring, value: pace)
+        // Keep just the data animating; jiggling the container made layout look buggy.
+        .animation(.easeInOut(duration: 0.25), value: points)
     }
 
     private var deltaBadge: some View {

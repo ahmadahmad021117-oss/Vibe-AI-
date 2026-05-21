@@ -1,15 +1,15 @@
 import SwiftUI
 
 struct DashboardView: View {
-    @State private var vm = DashboardViewModel()
+    /// Injected so MainTabView can share state with ProgressTabView.
+    @Bindable var vm: DashboardViewModel
+
     @State private var network = NetworkStatus.shared
     @State private var showingScan = false
     @State private var showingManualEntry = false
     @State private var showingWeightCheckIn = false
     @State private var showingProfile = false
     @State private var showingWeekly = false
-    @State private var showingEditWeight = false
-    @State private var showingEditGoalWeight = false
     @State private var nutrientPage: NutrientPage = .macros
 
     var body: some View {
@@ -19,13 +19,14 @@ struct DashboardView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: Theme.Spacing.lg) {
                     ringCard
+                        .padding(.horizontal, Theme.Spacing.lg)
                     nutrientPager
                     actionsRow
-                    planSection
+                        .padding(.horizontal, Theme.Spacing.lg)
                     todaySection
+                        .padding(.horizontal, Theme.Spacing.lg)
                     Spacer(minLength: 80)
                 }
-                .padding(.horizontal, Theme.Spacing.lg)
                 .padding(.top, Theme.Spacing.sm)
             }
             .refreshable { await vm.load() }
@@ -41,7 +42,7 @@ struct DashboardView: View {
                 .background(Theme.Palette.bg)
             }
         }
-        .task { await vm.load() }
+        .task { if vm.target == nil { await vm.load() } }
         .fullScreenCover(isPresented: $showingScan) {
             ScanFlowView { _ in
                 showingScan = false
@@ -60,22 +61,6 @@ struct DashboardView: View {
         .sheet(isPresented: $showingProfile) { ProfileView() }
         .sheet(isPresented: $showingWeekly, onDismiss: { Task { await vm.load() } }) {
             WeeklyProgressView()
-        }
-        .sheet(isPresented: $showingEditWeight) {
-            EditWeightSheet(
-                title: "Update current weight",
-                initialKg: vm.latestWeight?.weightKg ?? vm.latestGoal?.startWeightKg ?? 70
-            ) { newKg in
-                Task { await vm.saveCurrentWeight(newKg) }
-            }
-        }
-        .sheet(isPresented: $showingEditGoalWeight) {
-            EditWeightSheet(
-                title: "Update goal weight",
-                initialKg: vm.latestGoal?.goalWeightKg ?? 70
-            ) { newKg in
-                Task { await vm.saveGoalWeight(newKg) }
-            }
         }
         .preferredColorScheme(.dark)
     }
@@ -179,7 +164,8 @@ struct DashboardView: View {
     }
 
     /// Horizontal pager: Macros (default) → Vitamins → Minerals.
-    /// Swipe right-to-left to advance to the next category.
+    /// Edge-to-edge so swipe transitions don't show black side gutters; cards have
+    /// their own horizontal padding to align with the rest of the page.
     private var nutrientPager: some View {
         VStack(spacing: Theme.Spacing.xs) {
             TabView(selection: $nutrientPage) {
@@ -188,7 +174,7 @@ struct DashboardView: View {
                 mineralsCard.tag(NutrientPage.minerals)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(height: 180)
+            .frame(height: 200)
 
             pageIndicator
         }
@@ -273,7 +259,9 @@ struct DashboardView: View {
         .padding(Theme.Spacing.md)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))
-        .padding(.horizontal, 2)
+        // Page lives inside an edge-to-edge TabView so each card supplies its own
+        // horizontal inset; matches the .lg padding used by other home-page sections.
+        .padding(.horizontal, Theme.Spacing.lg)
     }
 
     private func nutrientBar(label: String, consumed: Double, target: Double,
@@ -340,131 +328,6 @@ struct DashboardView: View {
             .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))
         }
         .accessibilityLabel(title)
-    }
-
-    @ViewBuilder
-    private var planSection: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-            Text("Plan")
-                .font(Theme.Typo.h3)
-                .foregroundStyle(Theme.Palette.text)
-
-            HStack(spacing: Theme.Spacing.sm) {
-                weightTile(
-                    icon: "scalemass",
-                    label: "Current",
-                    value: weightString(vm.latestWeight?.weightKg ?? vm.latestGoal?.startWeightKg)
-                ) {
-                    showingEditWeight = true
-                }
-                weightTile(
-                    icon: "target",
-                    label: "Goal",
-                    value: weightString(vm.latestGoal?.goalWeightKg)
-                ) {
-                    showingEditGoalWeight = true
-                }
-            }
-
-            paceSegmented
-
-            if let current = vm.latestWeight?.weightKg ?? vm.latestGoal?.startWeightKg,
-               let goal = vm.latestGoal?.goalWeightKg {
-                WeightProjectionChart(
-                    currentKg: current,
-                    goalKg: goal,
-                    pace: vm.pace,
-                    heightCm: vm.profile?.heightCm
-                )
-            }
-        }
-    }
-
-    private func weightTile(icon: String, label: String, value: String, action: @escaping () -> Void) -> some View {
-        Button {
-            Haptics.tapLight()
-            action()
-        } label: {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Image(systemName: icon)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Theme.Palette.textMuted)
-                    Text(label)
-                        .font(Theme.Typo.caption)
-                        .foregroundStyle(Theme.Palette.textMuted)
-                    Spacer()
-                    Image(systemName: "pencil")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Theme.Palette.textDim)
-                }
-                Text(value)
-                    .font(Theme.Typo.bodyBold)
-                    .foregroundStyle(Theme.Palette.text)
-            }
-            .padding(Theme.Spacing.md)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))
-        }
-        .accessibilityLabel("\(label) weight \(value). Tap to edit.")
-    }
-
-    private var paceSegmented: some View {
-        HStack(spacing: 6) {
-            ForEach(Pace.allCases) { p in
-                paceChip(p)
-            }
-        }
-        .padding(4)
-        .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))
-    }
-
-    private func paceChip(_ p: Pace) -> some View {
-        let selected = vm.pace == p
-        return Button {
-            Haptics.select()
-            Task { await vm.savePace(p) }
-        } label: {
-            VStack(spacing: 2) {
-                Image(systemName: paceIcon(p))
-                    .font(.system(size: 14, weight: .semibold))
-                Text(paceShortLabel(p))
-                    .font(Theme.Typo.caption)
-            }
-            .foregroundStyle(selected ? Theme.Palette.text : Theme.Palette.textMuted)
-            .frame(maxWidth: .infinity, minHeight: 40)
-            .background(
-                RoundedRectangle(cornerRadius: Theme.Radii.md, style: .continuous)
-                    .fill(selected ? Theme.Palette.surfaceHi : Color.clear)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: Theme.Radii.md, style: .continuous)
-                    .stroke(selected ? Theme.Palette.accent : Color.clear, lineWidth: 1.5)
-            )
-        }
-        .accessibilityLabel("\(p.label). \(p.subtitle).")
-        .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
-    }
-
-    private func paceIcon(_ pace: Pace) -> String {
-        switch pace {
-        case .slow:   return "tortoise.fill"
-        case .medium: return "figure.walk"
-        case .fast:   return "hare.fill"
-        }
-    }
-
-    private func paceShortLabel(_ pace: Pace) -> String {
-        switch pace {
-        case .slow:   return "Slow"
-        case .medium: return "Balanced"
-        case .fast:   return "Faster"
-        }
-    }
-
-    private func weightString(_ kg: Double?) -> String {
-        guard let kg else { return "—" }
-        return String(format: "%.1f kg", kg)
     }
 
     private var todaySection: some View {
@@ -588,6 +451,6 @@ private struct LogRow: View {
 
 #Preview {
     // Loads from Supabase on appear; preview shows the empty/loading layout.
-    DashboardView()
+    DashboardView(vm: DashboardViewModel())
         .preferredColorScheme(.dark)
 }

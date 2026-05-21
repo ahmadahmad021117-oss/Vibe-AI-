@@ -67,7 +67,7 @@ struct RootCoordinator: View {
                 .transition(.move(edge: .trailing).combined(with: .opacity))
 
             case .main:
-                DashboardView()
+                MainTabView()
                     .transition(.opacity)
             }
         }

@@ -222,12 +222,13 @@ enum NutritionEngine {
     /// - If the goal direction conflicts with the goal type (e.g. user picked "lose weight"
     ///   but goalKg > currentKg) the engine ignores the conflict and projects toward `goalKg`.
     /// - Returns at least the starting point. Empty pace / equal weights → just the start.
-    /// - `maxWeeks` keeps the chart bounded for very small paces or unreachable goals.
+    /// - `maxWeeks` keeps the chart bounded; default (520 = 10 years) lets the line
+    ///   reach the goal even at the slowest pace for large goal swings.
     static func projectWeeks(
         currentKg: Double,
         goalKg: Double,
         pace: Pace,
-        maxWeeks: Int = 104,
+        maxWeeks: Int = 520,
         startingFrom start: Date = Date()
     ) -> [ProjectionPoint] {
         let diff = goalKg - currentKg
