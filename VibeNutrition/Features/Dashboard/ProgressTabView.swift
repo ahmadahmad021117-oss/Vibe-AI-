@@ -116,27 +116,32 @@ struct ProgressTabView: View {
         }
     }
 
-    /// Vertical-stack tile so the label never wraps and the value is the visual anchor (Apple Health style).
+    /// Vertical-stack tile. The icon + pencil sit in a top row, the label gets its own
+    /// dedicated line, and the value anchors the bottom. lineLimit(1) plus
+    /// minimumScaleFactor guarantee single-line labels even on the narrowest iPhone.
     private func weightTile(iconSystem: String, iconTint: Color, label: String, kg: Double?, action: @escaping () -> Void) -> some View {
         Button {
             Haptics.tapLight()
             action()
         } label: {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
                     Image(systemName: iconSystem)
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(.white)
-                        .frame(width: 24, height: 24)
+                        .frame(width: 22, height: 22)
                         .background(iconTint, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-                    Text(label)
-                        .font(Theme.Typo.caption)
-                        .foregroundStyle(Theme.Palette.textMuted)
                     Spacer()
                     Image(systemName: "pencil")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(Theme.Palette.textDim)
                 }
+                Text(label.uppercased())
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Theme.Palette.textMuted)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .fixedSize(horizontal: false, vertical: true)
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text(kgValueString(kg))
                         .font(.system(size: 26, weight: .bold, design: .rounded))
