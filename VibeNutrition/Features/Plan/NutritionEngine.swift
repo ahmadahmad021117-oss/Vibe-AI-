@@ -16,6 +16,11 @@ enum NutritionEngine {
         var mainFocus: MainFocus?
         /// User-selected pace. Optional for backward compat — defaults to .medium when nil.
         var pace: Pace?
+        /// Target body weight. When present this drives the calorie direction (deficit / surplus /
+        /// maintain) rather than the legacy `GoalType` enum — so a user who edits their goal weight
+        /// in Settings (e.g. lose → gain) gets the right kcal target even before their stored
+        /// `GoalType` is migrated.
+        var goalWeightKg: Double?
     }
 
     // MARK: - Outputs
@@ -81,6 +86,42 @@ enum NutritionEngine {
 
     // MARK: - Macro targets
 
+    /// Loss / Gain / Maintain — derived from the real current↔goal weight delta when supplied,
+    /// otherwise falls back to the stored `GoalType` enum.
+    enum EffectiveDirection {
+        case loss, gain, maintain
+        var sign: Double {
+            switch self {
+            case .loss: return -1
+            case .gain: return  1
+            case .maintain: return 0
+            }
+        }
+    }
+
+    /// Resolve the actual direction the user is heading. If real weights are present we trust
+    /// them — this is what makes "Faster" produce more kcal for a gain goal and fewer kcal for
+    /// a loss goal even if the user's stored `GoalType` was set during onboarding and then
+    /// invalidated by editing the goal weight.
+    static func effectiveDirection(
+        goal: GoalType,
+        currentWeightKg: Double? = nil,
+        goalWeightKg: Double? = nil
+    ) -> EffectiveDirection {
+        if let c = currentWeightKg, let g = goalWeightKg {
+            let delta = g - c
+            if delta < -0.5 { return .loss }
+            if delta >  0.5 { return .gain }
+            return .maintain
+        }
+        switch goal {
+        case .loseWeight:                 return .loss
+        case .gainWeight, .buildMuscle:   return .gain
+        case .maintain, .improveHealth:   return .maintain
+        case .recomp:                     return .loss     // mild cut by default
+        }
+    }
+
     /// Calorie deficit/surplus depending on goal, capped at ±20% TDEE.
     /// Returns (kcalTarget, weeklyDeltaKg).
     /// 7700 kcal ≈ 1 kg body mass (rough but standard).
@@ -100,24 +141,44 @@ enum NutritionEngine {
     /// Falls back to a sensible default per goal when `pace` is nil.
     /// Cap at ±20 % TDEE so even "fast" stays sane for small users.
     /// Maintain / improveHealth / recomp ignore pace by design.
+    ///
+    /// When `currentWeightKg` and `goalWeightKg` are supplied, the direction (cut vs. bulk) is
+    /// derived from the actual delta — that's the only way to keep the math right after the
+    /// user edits their goal weight in Settings without changing the legacy `GoalType` enum.
     static func goalAdjustedKcal(
         tdee: Double,
         goal: GoalType,
-        pace: Pace?
+        pace: Pace?,
+        currentWeightKg: Double? = nil,
+        goalWeightKg: Double? = nil
     ) -> (kcal: Int, weeklyDeltaKg: Double) {
         let cap = 0.20
+        let direction = effectiveDirection(
+            goal: goal,
+            currentWeightKg: currentWeightKg,
+            goalWeightKg: goalWeightKg
+        )
 
-        // Goals that are pace-insensitive use a fixed percentage adjustment.
-        // (Recomp is intentionally mild; maintain / improveHealth are zero.)
-        if let fixedPct = fixedPercentageFor(goal: goal) {
-            let target = tdee * (1 + fixedPct)
+        // Maintenance is non-negotiable: kcal == TDEE.
+        if direction == .maintain {
+            return (Int(tdee.rounded()), 0)
+        }
+
+        // Recomp is intentionally a mild adjustment, ignoring pace.
+        if goal == .recomp {
+            let pct = direction == .gain ? 0.03 : -0.05
+            let target = tdee * (1 + pct)
             let weeklyKg = ((target - tdee) * 7) / 7700.0
             return (Int(target.rounded()), weeklyKg)
         }
 
+        // improveHealth is also kcal-neutral by design.
+        if goal == .improveHealth {
+            return (Int(tdee.rounded()), 0)
+        }
+
         let effectivePace = pace ?? .medium
-        let direction: Double = (goal == .loseWeight) ? -1 : 1
-        let weeklyKg = effectivePace.weeklyKg * direction
+        let weeklyKg = effectivePace.weeklyKg * direction.sign
         let dailyDeltaKcal = (weeklyKg * 7700) / 7.0
         var target = tdee + dailyDeltaKcal
         // Clamp to ±20 % TDEE.
@@ -128,16 +189,6 @@ enum NutritionEngine {
         let actualDailyDelta = target - tdee
         let actualWeeklyKg = (actualDailyDelta * 7) / 7700.0
         return (Int(target.rounded()), actualWeeklyKg)
-    }
-
-    /// Returns the fixed percentage adjustment for goals that don't honor pace.
-    /// Returns nil for goals (lose / gain / build) that scale with pace.
-    private static func fixedPercentageFor(goal: GoalType) -> Double? {
-        switch goal {
-        case .maintain, .improveHealth: return  0.0
-        case .recomp:                   return -0.05   // mild deficit, unchanged from v1
-        case .loseWeight, .gainWeight, .buildMuscle: return nil
-        }
     }
 
     /// Protein g/kg by goal — priority macro.
@@ -151,13 +202,55 @@ enum NutritionEngine {
         }
     }
 
+    /// Same as above but cross-references the *real* weight delta so a stale `GoalType`
+    /// (e.g. user picked "Lose weight" in onboarding then later set a higher goal weight)
+    /// can't keep applying the cutting protein target during a bulk.
+    static func proteinTargetGramsPerKg(
+        goal: GoalType,
+        currentWeightKg: Double?,
+        goalWeightKg: Double?
+    ) -> Double {
+        let dir = effectiveDirection(
+            goal: goal,
+            currentWeightKg: currentWeightKg,
+            goalWeightKg: goalWeightKg
+        )
+        // buildMuscle / recomp keep their high-protein priority regardless of direction.
+        switch goal {
+        case .buildMuscle, .recomp: return 2.2
+        case .improveHealth:        return 1.6
+        default: break
+        }
+        switch dir {
+        case .loss:     return 2.0   // muscle-preserving cut
+        case .gain:     return 1.8   // lean-bulk default
+        case .maintain: return 1.8
+        }
+    }
+
     /// Compute macro split for the given kcal target.
     /// Protein first (priority), then fat floor ≥ 0.8 g/kg (9 kcal/g), remainder → carbs (4 kcal/g).
     /// If protein+fat alone exceed kcal target, trim fat to the floor and let carbs hit 0.
     static func macros(kcalTarget: Int, weightKg: Double, goal: GoalType)
         -> (proteinG: Int, carbsG: Int, fatG: Int)
     {
-        let proteinG = max(0, weightKg * proteinTargetGramsPerKg(goal: goal))
+        macros(kcalTarget: kcalTarget, weightKg: weightKg, goal: goal,
+               currentWeightKg: nil, goalWeightKg: nil)
+    }
+
+    static func macros(
+        kcalTarget: Int,
+        weightKg: Double,
+        goal: GoalType,
+        currentWeightKg: Double?,
+        goalWeightKg: Double?
+    ) -> (proteinG: Int, carbsG: Int, fatG: Int) {
+        let proteinPerKg = proteinTargetGramsPerKg(
+            goal: goal,
+            currentWeightKg: currentWeightKg,
+            goalWeightKg: goalWeightKg
+        )
+        let proteinG = max(0, weightKg * proteinPerKg)
         let proteinKcal = proteinG * 4
 
         let fatFloorG = max(0, weightKg * 0.8)
@@ -193,9 +286,16 @@ enum NutritionEngine {
         )
         let tdeeKcal = tdee(bmr: bmr, multiplier: mult)
         let (kcalTarget, weeklyDelta) = goalAdjustedKcal(
-            tdee: tdeeKcal, goal: inputs.goal, pace: inputs.pace
+            tdee: tdeeKcal,
+            goal: inputs.goal,
+            pace: inputs.pace,
+            currentWeightKg: inputs.weightKg,
+            goalWeightKg: inputs.goalWeightKg
         )
-        let m = macros(kcalTarget: kcalTarget, weightKg: inputs.weightKg, goal: inputs.goal)
+        let m = macros(
+            kcalTarget: kcalTarget, weightKg: inputs.weightKg, goal: inputs.goal,
+            currentWeightKg: inputs.weightKg, goalWeightKg: inputs.goalWeightKg
+        )
 
         return Result(
             bmr: Int(bmr.rounded()),

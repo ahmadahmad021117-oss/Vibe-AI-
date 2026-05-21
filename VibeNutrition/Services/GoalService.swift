@@ -17,15 +17,47 @@ final class GoalService {
         try await SupabaseService.shared.from("goals").insert(payload).execute()
     }
 
-    /// Insert a new goal row reusing the existing goal type and start weight, but with a new target.
-    /// Used by settings → edit goal weight without losing history.
+    /// Insert a new goal row reusing the existing start weight but with a new target.
+    /// Re-infers `GoalType` from the actual current ↔ new-target delta so a user who
+    /// originally onboarded as "Lose" can flip to "Gain" the moment they raise their
+    /// target above their current weight. Preserves explicit choices (.buildMuscle /
+    /// .recomp / .improveHealth) when the direction still matches.
     func updateGoalWeight(_ goalWeightKg: Double) async throws {
         guard let latest = try await fetchLatest() else { return }
+        let currentKg = (try? await WeightLogService.shared.fetchLatest())?.weightKg
+            ?? latest.startWeightKg
+        let resolvedType = Self.resolveGoalType(
+            existing: latest.type,
+            currentKg: currentKg,
+            goalKg: goalWeightKg
+        )
         try await upsertActiveGoal(
-            type: latest.type,
+            type: resolvedType,
             startWeightKg: latest.startWeightKg,
             goalWeightKg: goalWeightKg
         )
+    }
+
+    /// Pure helper so it's directly unit-testable. nonisolated because there's no actor state.
+    nonisolated static func resolveGoalType(existing: GoalType, currentKg: Double, goalKg: Double) -> GoalType {
+        let delta = goalKg - currentKg
+
+        // Within 0.5 kg of current → maintenance. Preserve explicit recomp/improveHealth.
+        if abs(delta) < 0.5 {
+            switch existing {
+            case .recomp:        return .recomp
+            case .improveHealth: return .improveHealth
+            default:             return .maintain
+            }
+        }
+
+        if delta < 0 {
+            // User wants to lose. Preserve recomp (mild cut); otherwise → loseWeight.
+            return existing == .recomp ? .recomp : .loseWeight
+        }
+
+        // delta > 0: user wants to gain. Preserve buildMuscle if it was the explicit choice.
+        return existing == .buildMuscle ? .buildMuscle : .gainWeight
     }
 
     func fetchLatest() async throws -> Goal? {

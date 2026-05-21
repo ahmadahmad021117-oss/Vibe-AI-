@@ -51,6 +51,7 @@ final class PlanGenerator {
             let focus = resolved.mainFocus
             let healthOn = resolved.healthSyncEnabled
             let pace = resolved.pace
+            let goalWeightKg = resolved.goalWeightKg
 
             var avgSteps: Int? = nil
             if healthOn {
@@ -71,7 +72,8 @@ final class PlanGenerator {
                     avgSteps: avgSteps,
                     goal: goal,
                     mainFocus: focus,
-                    pace: pace
+                    pace: pace,
+                    goalWeightKg: goalWeightKg
                 )
             )
 
@@ -82,7 +84,8 @@ final class PlanGenerator {
             self.inputs = NutritionEngine.Inputs(
                 sex: sex, age: age, heightCm: heightCm, weightKg: weightKg,
                 trainingDaysPerWeek: trainingDays, avgSteps: avgSteps,
-                goal: goal, mainFocus: focus, pace: pace
+                goal: goal, mainFocus: focus, pace: pace,
+                goalWeightKg: goalWeightKg
             )
             self.result = computed
             try await TargetService.shared.writeLatest(computed, inputs: self.inputs!)
@@ -106,6 +109,10 @@ final class PlanGenerator {
         var mainFocus: MainFocus?
         var healthSyncEnabled: Bool
         var pace: Pace
+        /// Target weight. The engine uses this to derive the calorie direction (deficit vs.
+        /// surplus) so a stale `GoalType` enum (e.g. user picked "Lose" in onboarding then
+        /// later edited goal weight to be above current) can't drag the math the wrong way.
+        var goalWeightKg: Double?
     }
 
     private func resolveInputs(onboarding: OnboardingState?) async throws -> ResolvedInputs {
@@ -120,7 +127,8 @@ final class PlanGenerator {
             return ResolvedInputs(
                 sex: sex, age: age, heightCm: height, weightKg: weight,
                 trainingDaysPerWeek: days, goal: goal, mainFocus: o.mainFocus,
-                healthSyncEnabled: o.healthSyncEnabled, pace: o.pace
+                healthSyncEnabled: o.healthSyncEnabled, pace: o.pace,
+                goalWeightKg: o.goalWeightKg
             )
         }
 
@@ -155,7 +163,8 @@ final class PlanGenerator {
             trainingDaysPerWeek: days, goal: latestGoal.type,
             mainFocus: profile.mainFocus,
             healthSyncEnabled: profile.healthSyncEnabled,
-            pace: profile.pace ?? .medium
+            pace: profile.pace ?? .medium,
+            goalWeightKg: latestGoal.goalWeightKg
         )
     }
 }

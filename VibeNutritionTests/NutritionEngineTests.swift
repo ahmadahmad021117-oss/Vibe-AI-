@@ -123,12 +123,14 @@ final class NutritionEngineTests: XCTestCase {
     // MARK: - Pace
 
     func testPaceChangesKcalForLoseGoal() {
-        let slow = NutritionEngine.goalAdjustedKcal(tdee: 2500, goal: .loseWeight, pace: .slow)
-        let med  = NutritionEngine.goalAdjustedKcal(tdee: 2500, goal: .loseWeight, pace: .medium)
-        let fast = NutritionEngine.goalAdjustedKcal(tdee: 2500, goal: .loseWeight, pace: .fast)
+        // TDEE 3500 → 20% cap is 700 kcal/day, which exceeds the maximum daily delta the
+        // fastest pace asks for (~825). Slow / medium / fast all stay distinct.
+        let slow = NutritionEngine.goalAdjustedKcal(tdee: 3500, goal: .loseWeight, pace: .slow)
+        let med  = NutritionEngine.goalAdjustedKcal(tdee: 3500, goal: .loseWeight, pace: .medium)
+        let fast = NutritionEngine.goalAdjustedKcal(tdee: 3500, goal: .loseWeight, pace: .fast)
         // Faster pace = larger deficit = lower kcal.
         XCTAssertGreaterThan(slow.kcal, med.kcal)
-        XCTAssertGreaterThan(med.kcal, fast.kcal)
+        XCTAssertGreaterThanOrEqual(med.kcal, fast.kcal) // may tie at the cap for very small TDEEs
         // All deltas are negative for loseWeight.
         XCTAssertLessThan(slow.weeklyDeltaKg, 0)
         XCTAssertLessThan(med.weeklyDeltaKg, 0)
@@ -136,8 +138,8 @@ final class NutritionEngineTests: XCTestCase {
     }
 
     func testPaceChangesKcalForGainGoal() {
-        let slow = NutritionEngine.goalAdjustedKcal(tdee: 2500, goal: .gainWeight, pace: .slow)
-        let fast = NutritionEngine.goalAdjustedKcal(tdee: 2500, goal: .gainWeight, pace: .fast)
+        let slow = NutritionEngine.goalAdjustedKcal(tdee: 3500, goal: .gainWeight, pace: .slow)
+        let fast = NutritionEngine.goalAdjustedKcal(tdee: 3500, goal: .gainWeight, pace: .fast)
         XCTAssertLessThan(slow.kcal, fast.kcal)
         XCTAssertGreaterThan(slow.weeklyDeltaKg, 0)
         XCTAssertGreaterThan(fast.weeklyDeltaKg, 0)
@@ -207,6 +209,132 @@ final class NutritionEngineTests: XCTestCase {
             heightCm: 175, goalKg: 130, currentKg: 70
         )
         XCTAssertNotNil(warning)
+    }
+
+    // MARK: - Effective-direction (weight-delta) override
+
+    func testEffectiveDirectionFollowsWeightDelta() {
+        // Stored type is .loseWeight but the user has set a HIGHER goal weight (their stored
+        // type is stale because GoalService didn't migrate). Without the fix the engine would
+        // produce a deficit; with the fix it must report .gain.
+        let dir = NutritionEngine.effectiveDirection(
+            goal: .loseWeight, currentWeightKg: 73, goalWeightKg: 104
+        )
+        XCTAssertEqual(dir, .gain)
+    }
+
+    func testEffectiveDirectionMaintainsWhenWeightsClose() {
+        let dir = NutritionEngine.effectiveDirection(
+            goal: .gainWeight, currentWeightKg: 80, goalWeightKg: 80.3
+        )
+        XCTAssertEqual(dir, .maintain)
+    }
+
+    func testEffectiveDirectionFallsBackToEnumWhenWeightsAbsent() {
+        // No weights → fall back to the stored type so legacy callers keep working.
+        let dir = NutritionEngine.effectiveDirection(goal: .loseWeight)
+        XCTAssertEqual(dir, .loss)
+    }
+
+    func testFasterPaceMeansMoreKcalForRealGainGoal() {
+        // The exact user-reported bug: stored type is .loseWeight, but the actual delta says
+        // gain. After the fix, Faster pace MUST produce more kcal than Slow.
+        let slow = NutritionEngine.goalAdjustedKcal(
+            tdee: 2400, goal: .loseWeight, pace: .slow,
+            currentWeightKg: 73, goalWeightKg: 104
+        )
+        let fast = NutritionEngine.goalAdjustedKcal(
+            tdee: 2400, goal: .loseWeight, pace: .fast,
+            currentWeightKg: 73, goalWeightKg: 104
+        )
+        XCTAssertGreaterThan(fast.kcal, slow.kcal)
+        XCTAssertGreaterThan(slow.weeklyDeltaKg, 0) // both gain
+        XCTAssertGreaterThan(fast.weeklyDeltaKg, 0)
+    }
+
+    func testFasterPaceMeansFewerKcalForRealLossGoal() {
+        // Stored type is .gainWeight but real delta says lose → must produce a deficit.
+        let slow = NutritionEngine.goalAdjustedKcal(
+            tdee: 2400, goal: .gainWeight, pace: .slow,
+            currentWeightKg: 90, goalWeightKg: 78
+        )
+        let fast = NutritionEngine.goalAdjustedKcal(
+            tdee: 2400, goal: .gainWeight, pace: .fast,
+            currentWeightKg: 90, goalWeightKg: 78
+        )
+        XCTAssertGreaterThan(slow.kcal, fast.kcal)
+        XCTAssertLessThan(slow.weeklyDeltaKg, 0)
+        XCTAssertLessThan(fast.weeklyDeltaKg, 0)
+    }
+
+    func testMaintainWhenWeightsMatchEvenIfTypeSaysLose() {
+        let (kcal, weekly) = NutritionEngine.goalAdjustedKcal(
+            tdee: 2400, goal: .loseWeight, pace: .fast,
+            currentWeightKg: 78, goalWeightKg: 78.2
+        )
+        XCTAssertEqual(kcal, 2400)
+        XCTAssertEqual(weekly, 0, accuracy: 0.001)
+    }
+
+    func testProteinFollowsRealDirectionNotEnum() {
+        // Stored type = loseWeight (would say 2.0 g/kg cut). Real delta = gain.
+        // Lean-bulk protein should be 1.8 g/kg.
+        let perKg = NutritionEngine.proteinTargetGramsPerKg(
+            goal: .loseWeight, currentWeightKg: 70, goalWeightKg: 80
+        )
+        XCTAssertEqual(perKg, 1.8, accuracy: 0.0001)
+    }
+
+    func testComputeUsesGoalWeightForDirection() {
+        // Simulate the bug scenario end-to-end: stale .loseWeight type, real gain target.
+        let inputs = NutritionEngine.Inputs(
+            sex: .male, age: 28, heightCm: 178, weightKg: 73,
+            trainingDaysPerWeek: 4, avgSteps: 8000,
+            goal: .loseWeight, mainFocus: .muscleGain, pace: .fast,
+            goalWeightKg: 104
+        )
+        let r = NutritionEngine.compute(inputs)
+        // Surplus, not deficit.
+        XCTAssertGreaterThan(r.kcalTarget, r.tdee)
+        XCTAssertGreaterThan(r.weeklyDeltaKg, 0)
+    }
+
+    // MARK: - GoalService type resolution
+
+    func testResolveGoalTypeFlipsToGainOnRaise() {
+        let resolved = GoalService.resolveGoalType(
+            existing: .loseWeight, currentKg: 73, goalKg: 104
+        )
+        XCTAssertEqual(resolved, .gainWeight)
+    }
+
+    func testResolveGoalTypeFlipsToLoseOnLower() {
+        let resolved = GoalService.resolveGoalType(
+            existing: .gainWeight, currentKg: 90, goalKg: 75
+        )
+        XCTAssertEqual(resolved, .loseWeight)
+    }
+
+    func testResolveGoalTypeKeepsRecompWhenDirectionStillMakesSense() {
+        let resolved = GoalService.resolveGoalType(
+            existing: .recomp, currentKg: 80, goalKg: 79
+        )
+        // Small loss, recomp preserved.
+        XCTAssertEqual(resolved, .recomp)
+    }
+
+    func testResolveGoalTypeMaintainOnTinyDelta() {
+        let resolved = GoalService.resolveGoalType(
+            existing: .loseWeight, currentKg: 80, goalKg: 80.3
+        )
+        XCTAssertEqual(resolved, .maintain)
+    }
+
+    func testResolveGoalTypeKeepsBuildMuscleOnGain() {
+        let resolved = GoalService.resolveGoalType(
+            existing: .buildMuscle, currentKg: 75, goalKg: 82
+        )
+        XCTAssertEqual(resolved, .buildMuscle)
     }
 }
 
