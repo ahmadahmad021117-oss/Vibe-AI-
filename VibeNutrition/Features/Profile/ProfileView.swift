@@ -15,6 +15,7 @@ struct ProfileView: View {
     @State private var showingPrivacy = false
     @State private var showingTerms = false
     @State private var showingEmailSheet = false
+    @State private var showingPaceSheet = false
 
     var body: some View {
         ZStack {
@@ -23,6 +24,7 @@ struct ProfileView: View {
                 VStack(alignment: .leading, spacing: Theme.Spacing.lg) {
                     accountSection
                     subscriptionSection
+                    planSection
                     notificationsSection
                     dataSection
                     legalSection
@@ -68,6 +70,9 @@ struct ProfileView: View {
             ) { email, optIn in
                 Task { await saveMarketingConsent(email: email, optIn: optIn) }
             }
+        }
+        .sheet(isPresented: $showingPaceSheet, onDismiss: { Task { await load() } }) {
+            PaceSheet()
         }
     }
 
@@ -124,6 +129,28 @@ struct ProfileView: View {
                     }
                 }
             }
+        }
+    }
+
+    private var planSection: some View {
+        section("Plan") {
+            tappableRow(
+                icon: "speedometer",
+                tint: .indigo,
+                label: "Pace",
+                value: paceShortLabel(profile?.pace)
+            ) {
+                showingPaceSheet = true
+            }
+        }
+    }
+
+    private func paceShortLabel(_ pace: Pace?) -> String {
+        guard let pace else { return "—" }
+        switch pace {
+        case .slow:   return "Slow"
+        case .medium: return "Balanced"
+        case .fast:   return "Faster"
         }
     }
 

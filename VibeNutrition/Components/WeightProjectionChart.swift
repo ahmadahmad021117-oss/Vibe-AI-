@@ -106,7 +106,8 @@ struct WeightProjectionChart: View {
 
             chart
                 .frame(height: 220)
-                .clipped()
+                // No .clipped() — the tooltip needs to escape the chart frame when the pin
+                // is near the top of the line, otherwise the bubble gets cut off.
                 .accessibilityLabel("Weight projection chart. Drag the pin to scrub through weeks.")
                 .accessibilityValue(etaText)
 
@@ -320,7 +321,8 @@ struct WeightProjectionChart: View {
         }
         .stroke(Theme.Palette.accent.opacity(0.4), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
 
-        // Floating tooltip — clamped inside plot bounds so it doesn't get cut off.
+        // Floating tooltip — flips below the pin when the pin is near the top of the chart
+        // so the bubble never gets clipped by the chart frame or the section above it.
         tooltip(week: week, weight: w)
             .background(
                 GeometryReader { tg in
@@ -330,9 +332,8 @@ struct WeightProjectionChart: View {
             .modifier(
                 TooltipPositioner(
                     pinX: x,
-                    plotMinX: plot.minX,
-                    plotMaxX: plot.maxX,
-                    yAbovePin: max(plot.minY + 6, y - 64)
+                    pinY: y,
+                    plot: plot
                 )
             )
 
@@ -434,29 +435,49 @@ private struct TooltipSizeKey: PreferenceKey {
     }
 }
 
-/// Positions the tooltip above the pin while clamping its left/right edge inside the plot area.
+/// Positions the tooltip above the pin by default, flipping to BELOW the pin when the pin
+/// sits in the upper portion of the plot — that way the bubble never overflows the chart
+/// frame even when there's no room above. Horizontal position is clamped inside the plot.
 private struct TooltipPositioner: ViewModifier {
     let pinX: CGFloat
-    let plotMinX: CGFloat
-    let plotMaxX: CGFloat
-    let yAbovePin: CGFloat
+    let pinY: CGFloat
+    let plot: CGRect
+
+    /// Vertical gap between the pin and the tooltip's nearest edge.
+    private let gap: CGFloat = 16
 
     @State private var size: CGSize = .zero
 
     func body(content: Content) -> some View {
         content
             .onPreferenceChange(TooltipSizeKey.self) { size = $0 }
-            .position(
-                x: clampedX,
-                y: yAbovePin
-            )
+            .position(x: clampedX, y: tooltipY)
     }
 
     private var clampedX: CGFloat {
         let half = size.width / 2
-        let minCenter = plotMinX + half + 4
-        let maxCenter = plotMaxX - half - 4
+        let minCenter = plot.minX + half + 4
+        let maxCenter = plot.maxX - half - 4
         return min(max(pinX, minCenter), maxCenter)
+    }
+
+    /// Returns the y-center for the tooltip. Prefers above; flips below when above would
+    /// clip past the chart's top edge.
+    private var tooltipY: CGFloat {
+        let halfH = size.height / 2
+        let aboveCenter = pinY - gap - halfH
+        let belowCenter = pinY + gap + halfH
+
+        // Above fits if its top edge stays at or below plot.minY (with a tiny overflow allowance).
+        if aboveCenter - halfH >= plot.minY - 4 {
+            return aboveCenter
+        }
+        // Otherwise try below if it doesn't run off the bottom edge.
+        if belowCenter + halfH <= plot.maxY + 4 {
+            return belowCenter
+        }
+        // Last-resort: pin to top edge.
+        return plot.minY + halfH + 4
     }
 }
 
