@@ -55,18 +55,25 @@ struct ProgressTabView: View {
 
     // MARK: - Header
 
+    /// Mirrors DashboardView.header exactly — same caption + h2 + 28pt profile icon
+    /// placement so swiping between tabs feels continuous.
     private var header: some View {
         HStack {
-            Text("Progress")
-                .font(Theme.Typo.h2)
-                .foregroundStyle(Theme.Palette.text)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Your plan")
+                    .font(Theme.Typo.caption)
+                    .foregroundStyle(Theme.Palette.textMuted)
+                Text("Progress")
+                    .font(Theme.Typo.h2)
+                    .foregroundStyle(Theme.Palette.text)
+            }
             Spacer()
             Button {
                 Haptics.tapLight()
                 showingProfile = true
             } label: {
                 Image(systemName: "person.crop.circle")
-                    .font(.system(size: 26))
+                    .font(.system(size: 28))
                     .foregroundStyle(Theme.Palette.textMuted)
             }
             .accessibilityLabel("Settings")
