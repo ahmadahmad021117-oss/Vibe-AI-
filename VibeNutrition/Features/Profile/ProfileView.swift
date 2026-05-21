@@ -20,8 +20,7 @@ struct ProfileView: View {
         ZStack {
             Theme.Palette.bg.ignoresSafeArea()
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: Theme.Spacing.md) {
-                    header
+                VStack(alignment: .leading, spacing: Theme.Spacing.lg) {
                     accountSection
                     subscriptionSection
                     notificationsSection
@@ -32,6 +31,12 @@ struct ProfileView: View {
                 }
                 .padding(.horizontal, Theme.Spacing.lg)
                 .padding(.top, Theme.Spacing.md)
+            }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                header
+                    .padding(.horizontal, Theme.Spacing.lg)
+                    .padding(.vertical, Theme.Spacing.sm)
+                    .background(Theme.Palette.bg)
             }
         }
         .task { await load() }
@@ -69,7 +74,7 @@ struct ProfileView: View {
     private var header: some View {
         HStack {
             Text("Settings")
-                .font(Theme.Typo.h1)
+                .font(Theme.Typo.h2)
                 .foregroundStyle(Theme.Palette.text)
             Spacer()
             Button {
@@ -77,9 +82,9 @@ struct ProfileView: View {
                 dismiss()
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Theme.Palette.textMuted)
-                    .frame(width: 32, height: 32)
+                    .frame(width: 30, height: 30)
                     .background(Theme.Palette.surface, in: Circle())
             }
         }
@@ -89,17 +94,27 @@ struct ProfileView: View {
 
     private var accountSection: some View {
         section("Account") {
-            row(icon: "envelope", label: "Account email") {
-                Text(AuthService.shared.session?.user.email ?? "—")
-                    .font(Theme.Typo.caption)
-                    .foregroundStyle(Theme.Palette.textMuted)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-            }
-            tappableRow(icon: "megaphone", label: marketingRowLabel) {
+            valueRow(
+                icon: "envelope.fill",
+                tint: .blue,
+                label: "Email",
+                value: AuthService.shared.session?.user.email ?? "—"
+            )
+            divider
+            tappableRow(
+                icon: "megaphone.fill",
+                tint: .orange,
+                label: "Marketing email",
+                value: profile?.marketingEmailOptIn == true ? "On" : "Off"
+            ) {
                 showingEmailSheet = true
             }
-            tappableRow(icon: "arrow.right.square", label: "Sign out") {
+            divider
+            tappableRow(
+                icon: "rectangle.portrait.and.arrow.right",
+                tint: .red,
+                label: "Sign out"
+            ) {
                 Task {
                     do {
                         try await AuthService.shared.signOut()
@@ -112,21 +127,21 @@ struct ProfileView: View {
         }
     }
 
-    private var marketingRowLabel: String {
-        if profile?.marketingEmailOptIn == true {
-            return "Marketing email · On"
-        }
-        return "Marketing email · Off"
-    }
-
     private var subscriptionSection: some View {
         section("Subscription") {
-            row(icon: "crown", label: "Status") {
-                Text(EntitlementService.shared.isPremium ? "Premium" : "Free")
-                    .font(Theme.Typo.caption)
-                    .foregroundStyle(EntitlementService.shared.isPremium ? Theme.Palette.accent : Theme.Palette.textMuted)
-            }
-            tappableRow(icon: "gear", label: "Manage in App Store") {
+            valueRow(
+                icon: "crown.fill",
+                tint: .yellow,
+                label: "Status",
+                value: EntitlementService.shared.isPremium ? "Premium" : "Free",
+                valueColor: EntitlementService.shared.isPremium ? Theme.Palette.accent : Theme.Palette.textMuted
+            )
+            divider
+            tappableRow(
+                icon: "gear",
+                tint: .gray,
+                label: "Manage in App Store"
+            ) {
                 if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
                     UIApplication.shared.open(url)
                 }
@@ -136,51 +151,48 @@ struct ProfileView: View {
 
     private var notificationsSection: some View {
         section("Notifications") {
-            HStack(spacing: 6) {
-                ForEach(NotificationPref.allCases) { pref in
-                    notificationChip(pref)
+            ForEach(Array(NotificationPref.allCases.enumerated()), id: \.element.id) { idx, pref in
+                Button {
+                    Haptics.select()
+                    notificationPref = pref
+                    Task {
+                        try? await ProfileService.shared.upsert(ProfilePatch(notificationPref: pref))
+                        await NotificationService.shared.apply(pref: pref)
+                    }
+                } label: {
+                    HStack(spacing: Theme.Spacing.sm) {
+                        iconBadge(systemName: iconFor(pref), tint: tintFor(pref))
+                        Text(pref.label)
+                            .font(Theme.Typo.body)
+                            .foregroundStyle(Theme.Palette.text)
+                        Spacer()
+                        if notificationPref == pref {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundStyle(Theme.Palette.accent)
+                        }
+                    }
+                    .padding(.horizontal, Theme.Spacing.md)
+                    .padding(.vertical, 10)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(pref.label)
+                .accessibilityAddTraits(notificationPref == pref ? [.isSelected, .isButton] : .isButton)
+                if idx < NotificationPref.allCases.count - 1 {
+                    divider
                 }
             }
-            .padding(4)
-            .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))
         }
-    }
-
-    private func notificationChip(_ pref: NotificationPref) -> some View {
-        let selected = notificationPref == pref
-        return Button {
-            Haptics.select()
-            notificationPref = pref
-            Task {
-                try? await ProfileService.shared.upsert(ProfilePatch(notificationPref: pref))
-                await NotificationService.shared.apply(pref: pref)
-            }
-        } label: {
-            VStack(spacing: 2) {
-                Image(systemName: iconFor(pref))
-                    .font(.system(size: 14, weight: .semibold))
-                Text(shortLabel(pref))
-                    .font(Theme.Typo.caption)
-                    .lineLimit(1)
-            }
-            .foregroundStyle(selected ? Theme.Palette.text : Theme.Palette.textMuted)
-            .frame(maxWidth: .infinity, minHeight: 40)
-            .background(
-                RoundedRectangle(cornerRadius: Theme.Radii.md, style: .continuous)
-                    .fill(selected ? Theme.Palette.surfaceHi : Color.clear)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: Theme.Radii.md, style: .continuous)
-                    .stroke(selected ? Theme.Palette.accent : Color.clear, lineWidth: 1.5)
-            )
-        }
-        .accessibilityLabel(pref.label)
-        .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
     }
 
     private var dataSection: some View {
         section("Your data") {
-            tappableRow(icon: "square.and.arrow.up", label: "Export as JSON") {
+            tappableRow(
+                icon: "square.and.arrow.up.fill",
+                tint: .blue,
+                label: "Export as JSON"
+            ) {
                 Task { await exportData() }
             }
         }
@@ -188,9 +200,11 @@ struct ProfileView: View {
 
     private var legalSection: some View {
         section("Help & Legal") {
-            tappableRow(icon: "questionmark.circle", label: "FAQ") { showingFAQ = true }
-            tappableRow(icon: "doc.text", label: "Privacy policy") { showingPrivacy = true }
-            tappableRow(icon: "doc.plaintext", label: "Terms of service") { showingTerms = true }
+            tappableRow(icon: "questionmark", tint: .gray, label: "FAQ") { showingFAQ = true }
+            divider
+            tappableRow(icon: "hand.raised.fill", tint: .indigo, label: "Privacy policy") { showingPrivacy = true }
+            divider
+            tappableRow(icon: "doc.text.fill", tint: .gray, label: "Terms of service") { showingTerms = true }
         }
     }
 
@@ -201,21 +215,107 @@ struct ProfileView: View {
                 showingDeleteConfirm = true
             } label: {
                 HStack(spacing: Theme.Spacing.sm) {
-                    Image(systemName: "trash.fill")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Theme.Palette.danger)
-                        .frame(width: 20)
+                    iconBadge(systemName: "trash.fill", tint: .red)
                     Text(deleting ? "Deleting…" : "Delete my account")
-                        .font(Theme.Typo.bodyBold)
+                        .font(Theme.Typo.body)
                         .foregroundStyle(Theme.Palette.danger)
                     Spacer()
                 }
                 .padding(.horizontal, Theme.Spacing.md)
                 .padding(.vertical, 10)
-                .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
             .disabled(deleting)
         }
+    }
+
+    // MARK: - Building blocks
+
+    @ViewBuilder
+    private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title.uppercased())
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Theme.Palette.textMuted)
+                .padding(.leading, Theme.Spacing.md)
+            VStack(spacing: 0) {
+                content()
+            }
+            .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.Radii.lg, style: .continuous)
+                    .stroke(Theme.Palette.border.opacity(0.7), lineWidth: 0.5)
+            )
+        }
+    }
+
+    private var divider: some View {
+        Rectangle()
+            .fill(Theme.Palette.border.opacity(0.6))
+            .frame(height: 0.5)
+            .padding(.leading, Theme.Spacing.md + 28 + Theme.Spacing.sm)
+    }
+
+    /// Colored squircle icon badge (iOS Settings-style).
+    private func iconBadge(systemName: String, tint: Color) -> some View {
+        Image(systemName: systemName)
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(width: 28, height: 28)
+            .background(tint, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+    }
+
+    /// Non-interactive row showing a label and a trailing value.
+    private func valueRow(icon: String, tint: Color, label: String, value: String, valueColor: Color = Theme.Palette.textMuted) -> some View {
+        HStack(spacing: Theme.Spacing.sm) {
+            iconBadge(systemName: icon, tint: tint)
+            Text(label)
+                .font(Theme.Typo.body)
+                .foregroundStyle(Theme.Palette.text)
+            Spacer()
+            Text(value)
+                .font(Theme.Typo.caption)
+                .foregroundStyle(valueColor)
+                .lineLimit(1)
+                .truncationMode(.middle)
+        }
+        .padding(.horizontal, Theme.Spacing.md)
+        .padding(.vertical, 10)
+    }
+
+    private func tappableRow(
+        icon: String,
+        tint: Color,
+        label: String,
+        value: String? = nil,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button {
+            Haptics.tapLight()
+            action()
+        } label: {
+            HStack(spacing: Theme.Spacing.sm) {
+                iconBadge(systemName: icon, tint: tint)
+                Text(label)
+                    .font(Theme.Typo.body)
+                    .foregroundStyle(Theme.Palette.text)
+                Spacer()
+                if let value {
+                    Text(value)
+                        .font(Theme.Typo.caption)
+                        .foregroundStyle(Theme.Palette.textMuted)
+                }
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Theme.Palette.textDim)
+            }
+            .padding(.horizontal, Theme.Spacing.md)
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
     }
 
     // MARK: - Helpers
@@ -228,81 +328,12 @@ struct ProfileView: View {
         }
     }
 
-    private func shortLabel(_ pref: NotificationPref) -> String {
+    private func tintFor(_ pref: NotificationPref) -> Color {
         switch pref {
-        case .full: return "All"
-        case .important: return "Important"
-        case .off: return "Off"
+        case .full: return .red
+        case .important: return .orange
+        case .off: return .gray
         }
-    }
-
-    @ViewBuilder
-    private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title.uppercased())
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(Theme.Palette.textMuted)
-                .padding(.leading, 4)
-            content()
-        }
-    }
-
-    @ViewBuilder
-    private func row<Trailing: View>(icon: String, label: String, @ViewBuilder trailing: () -> Trailing) -> some View {
-        HStack(spacing: Theme.Spacing.sm) {
-            Image(systemName: icon)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Theme.Palette.textMuted)
-                .frame(width: 20)
-            Text(label)
-                .font(Theme.Typo.body)
-                .foregroundStyle(Theme.Palette.text)
-            Spacer()
-            trailing()
-        }
-        .padding(.horizontal, Theme.Spacing.md)
-        .padding(.vertical, 10)
-        .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))
-    }
-
-    private func tappableRow(
-        icon: String,
-        label: String,
-        action: @escaping () -> Void
-    ) -> some View {
-        tappableRow(icon: icon, label: label, action: action) { EmptyView() }
-    }
-
-    @ViewBuilder
-    private func tappableRow<Trailing: View>(
-        icon: String,
-        label: String,
-        action: @escaping () -> Void,
-        @ViewBuilder trailing: () -> Trailing
-    ) -> some View {
-        Button {
-            Haptics.tapLight()
-            action()
-        } label: {
-            HStack(spacing: Theme.Spacing.sm) {
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Theme.Palette.textMuted)
-                    .frame(width: 20)
-                Text(label)
-                    .font(Theme.Typo.body)
-                    .foregroundStyle(Theme.Palette.text)
-                Spacer()
-                trailing()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Theme.Palette.textDim)
-            }
-            .padding(.horizontal, Theme.Spacing.md)
-            .padding(.vertical, 10)
-            .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))
-        }
-        .accessibilityLabel(label)
     }
 
     // MARK: - Data ops
