@@ -7,7 +7,6 @@ struct DashboardView: View {
     @State private var network = NetworkStatus.shared
     @State private var showingScan = false
     @State private var showingManualEntry = false
-    @State private var showingWeightCheckIn = false
     @State private var showingProfile = false
     @State private var showingWeekly = false
     @State private var nutrientPage: NutrientPage = .macros
@@ -54,9 +53,6 @@ struct DashboardView: View {
                 showingManualEntry = false
                 Task { await vm.load() }
             })
-        }
-        .sheet(isPresented: $showingWeightCheckIn) {
-            WeightCheckInSheet { showingWeightCheckIn = false }
         }
         .sheet(isPresented: $showingProfile) { ProfileView() }
         .sheet(isPresented: $showingWeekly, onDismiss: { Task { await vm.load() } }) {
@@ -304,9 +300,6 @@ struct DashboardView: View {
             }
             actionTile(icon: "plus.circle.fill", title: "Manual") {
                 showingManualEntry = true
-            }
-            actionTile(icon: "scalemass.fill", title: "Weight") {
-                showingWeightCheckIn = true
             }
         }
     }
