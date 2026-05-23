@@ -27,6 +27,7 @@ struct HealthSyncScreen: View {
                     title: "Connect Apple Health",
                     subtitle: "Recommended",
                     systemImage: "heart.fill",
+                    tint: .pink,
                     isSelected: state.healthSyncEnabled
                 ) {
                     state.healthSyncEnabled = true
@@ -41,6 +42,7 @@ struct HealthSyncScreen: View {
                 OptionCard(
                     title: "Skip for now",
                     systemImage: "forward.fill",
+                    tint: .gray,
                     isSelected: !state.healthSyncEnabled
                 ) {
                     state.healthSyncEnabled = false

@@ -8,10 +8,10 @@ import SwiftUI
 struct SexScreen: View {
     @Bindable var state: OnboardingState
 
-    private let icons: [SexType: String] = [
-        .male: "figure.stand",
-        .female: "figure.stand.dress",
-        .other: "person.fill",
+    private let style: [SexType: (String, Color)] = [
+        .male:   ("figure.stand",                .blue),
+        .female: ("figure.stand.dress",          .pink),
+        .other:  ("person.fill.questionmark",    .gray),
     ]
 
     private let subtitles: [SexType: String] = [
@@ -32,10 +32,12 @@ struct SexScreen: View {
         ) {
             VStack(spacing: Theme.Spacing.sm) {
                 ForEach(SexType.allCases) { sex in
+                    let s = style[sex]
                     OptionCard(
                         title: sex.label,
                         subtitle: subtitles[sex],
-                        systemImage: icons[sex],
+                        systemImage: s?.0,
+                        tint: s?.1,
                         isSelected: state.sex == sex
                     ) {
                         state.sex = sex

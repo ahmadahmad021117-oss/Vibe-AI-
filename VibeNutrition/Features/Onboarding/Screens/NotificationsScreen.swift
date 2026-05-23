@@ -8,10 +8,10 @@ import SwiftUI
 struct NotificationsScreen: View {
     @Bindable var state: OnboardingState
 
-    private let icons: [NotificationPref: String] = [
-        .full: "bell.badge.fill",
-        .important: "bell.fill",
-        .off: "bell.slash.fill",
+    private let style: [NotificationPref: (String, Color)] = [
+        .full:      ("bell.badge.fill", .red),
+        .important: ("bell.fill",       .orange),
+        .off:       ("bell.slash.fill", .gray),
     ]
 
     private let subtitles: [NotificationPref: String] = [
@@ -34,10 +34,12 @@ struct NotificationsScreen: View {
         ) {
             VStack(spacing: Theme.Spacing.sm) {
                 ForEach(NotificationPref.allCases) { pref in
+                    let s = style[pref]
                     OptionCard(
                         title: pref.label,
                         subtitle: subtitles[pref],
-                        systemImage: icons[pref],
+                        systemImage: s?.0,
+                        tint: s?.1,
                         isSelected: state.notificationPref == pref
                     ) {
                         state.notificationPref = pref
