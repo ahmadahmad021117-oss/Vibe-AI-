@@ -77,9 +77,20 @@ final class FoodScanService {
                 .invoke("analyze-food", options: FunctionInvokeOptions(body: AnalyzeRequest(image_path: path)))
             return (path, response)
         } catch let err as FunctionsError {
-            if case .httpError(_, let data) = err,
-               let body = try? JSONDecoder().decode(AnalyzeError.self, from: data) {
-                throw FoodScanError.analysisFailed(body.detail ?? body.error ?? "server error")
+            if case .httpError(let status, let data) = err {
+                // Server-side authoritative quota gate. The client pre-check in
+                // EntitlementService.assertCanScan() can be raced or stale, but
+                // the edge function counts attempts atomically — so this 402
+                // is the real source of truth.
+                if status == 402 {
+                    throw FoodScanError.scanLimitReached
+                }
+                if let body = try? JSONDecoder().decode(AnalyzeError.self, from: data) {
+                    if body.error == "quota_exceeded" {
+                        throw FoodScanError.scanLimitReached
+                    }
+                    throw FoodScanError.analysisFailed(body.detail ?? body.error ?? "server error")
+                }
             }
             throw FoodScanError.analysisFailed(err.localizedDescription)
         } catch {

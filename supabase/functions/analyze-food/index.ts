@@ -184,11 +184,56 @@ serve(async (req) => {
       });
     }
 
+    // ---------------------------------------------------------------
+    // Quota gate: atomic check-and-record in the DB. This runs BEFORE
+    // we sign the URL or call Anthropic, so a free user who's exhausted
+    // their daily allowance can't burn paid AI calls by tapping
+    // "Retake" — the count is incremented the moment we authorise.
+    // ---------------------------------------------------------------
+    const FREE_DAILY_SCAN_LIMIT = 3;
+    const adminClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
+    const { data: attemptId, error: quotaError } = await adminClient.rpc(
+      'check_and_record_scan',
+      { p_user_id: user.id, p_daily_limit: FREE_DAILY_SCAN_LIMIT }
+    );
+
+    if (quotaError) {
+      // Postgres SQLSTATE P0001 with message 'quota_exceeded' = user over free daily limit.
+      const msg = quotaError.message ?? '';
+      if (msg.includes('quota_exceeded')) {
+        return new Response(
+          JSON.stringify({
+            error: 'quota_exceeded',
+            detail: 'Daily free scan limit reached. Upgrade for unlimited scans.',
+            daily_limit: FREE_DAILY_SCAN_LIMIT,
+          }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      return new Response(
+        JSON.stringify({ error: 'quota_check_failed', detail: msg }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Helper: finalise the attempt status so the row doesn't sit in 'pending' forever.
+    const finalise = async (status: 'success' | 'failed') => {
+      await adminClient.rpc('mark_scan_outcome', {
+        p_attempt_id: attemptId,
+        p_status: status,
+      });
+    };
+
     // Signed URL for the image — short TTL.
     const { data: signed, error: signError } = await supabase.storage
       .from('food-scans')
       .createSignedUrl(path, 60);
     if (signError || !signed?.signedUrl) {
+      await finalise('failed');
       return new Response(JSON.stringify({ error: 'image_not_found' }), {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -212,12 +257,15 @@ serve(async (req) => {
     }
 
     if (!validated) {
+      // Anthropic failed — refund the attempt so the user isn't charged for our outage.
+      await finalise('failed');
       return new Response(
         JSON.stringify({ error: 'analysis_failed', detail: lastError }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    await finalise('success');
     return new Response(JSON.stringify(validated), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

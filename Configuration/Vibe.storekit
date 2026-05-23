@@ -71,40 +71,52 @@
         {
           "adHocOffers" : [],
           "codeOffers" : [],
-          "displayPrice" : "7.99",
+          "displayPrice" : "6.99",
           "familyShareable" : false,
           "groupNumber" : 1,
-          "internalID" : "VIBE_PREMIUM_MONTHLY",
-          "introductoryOffer" : null,
+          "internalID" : "VIBE_PREMIUM_WEEKLY",
+          "introductoryOffer" : {
+            "displayPrice" : "0.00",
+            "internalID" : "VIBE_PREMIUM_WEEKLY_TRIAL",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P3D"
+          },
           "localizations" : [
             {
-              "description" : "Vibe Premium — billed monthly",
-              "displayName" : "Premium Monthly",
+              "description" : "VibeCal Premium — billed weekly",
+              "displayName" : "Premium Weekly",
               "locale" : "en_US"
             }
           ],
-          "productID" : "com.vibe.nutrition.premium.monthly",
-          "recurringSubscriptionPeriod" : "P1M",
-          "referenceName" : "Premium Monthly",
+          "productID" : "com.vibecal.premium.weekly",
+          "recurringSubscriptionPeriod" : "P1W",
+          "referenceName" : "Premium Weekly",
           "subscriptionGroupID" : "VIBE_PREMIUM_GROUP",
           "type" : "RecurringSubscription"
         },
         {
           "adHocOffers" : [],
           "codeOffers" : [],
-          "displayPrice" : "59.99",
+          "displayPrice" : "39.99",
           "familyShareable" : false,
-          "groupNumber" : 1,
+          "groupNumber" : 2,
           "internalID" : "VIBE_PREMIUM_YEARLY",
-          "introductoryOffer" : null,
+          "introductoryOffer" : {
+            "displayPrice" : "0.00",
+            "internalID" : "VIBE_PREMIUM_YEARLY_TRIAL",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P3D"
+          },
           "localizations" : [
             {
-              "description" : "Vibe Premium — billed yearly",
+              "description" : "VibeCal Premium — billed yearly",
               "displayName" : "Premium Yearly",
               "locale" : "en_US"
             }
           ],
-          "productID" : "com.vibe.nutrition.premium.yearly",
+          "productID" : "com.vibecal.premium.yearly",
           "recurringSubscriptionPeriod" : "P1Y",
           "referenceName" : "Premium Yearly",
           "subscriptionGroupID" : "VIBE_PREMIUM_GROUP",
