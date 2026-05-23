@@ -24,7 +24,10 @@ struct PaywallView: View {
                         offeringsSection
                     }
                     finePrint
-                    Spacer(minLength: 120)
+                    // Bottom inset must clear: button (~56) + Restore row (~20)
+                    // + top fade (28) + bottom padding (24) + safe area. 200pt
+                    // covers the iPhone Pro Max bottom inset comfortably.
+                    Spacer(minLength: 200)
                 }
                 .padding(.horizontal, Theme.Spacing.lg)
                 .padding(.top, Theme.Spacing.xl)
@@ -268,36 +271,41 @@ struct PaywallView: View {
     }
 
     private var actionsBar: some View {
-        VStack(spacing: Theme.Spacing.sm) {
-            PrimaryButton(
-                title: ctaLabel,
-                isEnabled: !processing && selectedPackage != nil
-            ) {
-                Task { await purchaseSelected() }
-            }
-            HStack {
-                Button("Restore") { Task { await restore() } }
-                    .font(Theme.Typo.caption)
-                    .foregroundStyle(Theme.Palette.textMuted)
-                Spacer()
-                Button("Not now") { onSkip() }
-                    .font(Theme.Typo.caption)
-                    .foregroundStyle(Theme.Palette.textMuted)
-            }
-            .padding(.horizontal, Theme.Spacing.sm)
-        }
-        .padding(.horizontal, Theme.Spacing.lg)
-        .padding(.bottom, Theme.Spacing.lg)
-        .background(
+        // Layered background: a short fade ABOVE the controls, then a solid
+        // bg behind the button + footer. The old single-gradient approach
+        // bottomed out at ~95% opacity, leaving the Yearly plan card visible
+        // through "Start free trial" and the Restore / Not now row.
+        VStack(spacing: 0) {
             LinearGradient(
                 colors: [Theme.Palette.bg.opacity(0), Theme.Palette.bg],
                 startPoint: .top, endPoint: .bottom
             )
-            .frame(height: 160)
-            .frame(maxWidth: .infinity)
-            .allowsHitTesting(false),
-            alignment: .bottom
-        )
+            .frame(height: 28)
+            .allowsHitTesting(false)
+
+            VStack(spacing: Theme.Spacing.sm) {
+                PrimaryButton(
+                    title: ctaLabel,
+                    isEnabled: !processing && selectedPackage != nil
+                ) {
+                    Task { await purchaseSelected() }
+                }
+                HStack {
+                    Button("Restore") { Task { await restore() } }
+                        .font(Theme.Typo.caption)
+                        .foregroundStyle(Theme.Palette.textMuted)
+                    Spacer()
+                    Button("Not now") { onSkip() }
+                        .font(Theme.Typo.caption)
+                        .foregroundStyle(Theme.Palette.textMuted)
+                }
+                .padding(.horizontal, Theme.Spacing.sm)
+            }
+            .padding(.horizontal, Theme.Spacing.lg)
+            .padding(.top, Theme.Spacing.sm)
+            .padding(.bottom, Theme.Spacing.lg)
+            .background(Theme.Palette.bg)
+        }
     }
 
     private func defaultPackage() -> Package? {
