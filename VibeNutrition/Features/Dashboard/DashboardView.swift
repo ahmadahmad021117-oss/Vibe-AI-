@@ -103,21 +103,40 @@ struct DashboardView: View {
     }
 
     private var streakPill: some View {
-        Button {
+        // Streak ≥ 7: pill switches to a bright accent fill with white text
+        // so the "I'm doing it" feeling actually lands. The original muted
+        // pill made a 14-day streak look identical to day 1 — zero reward
+        // signal for the user's behaviour, which is the whole point of a
+        // streak.
+        let hot = vm.streak >= 7
+        return Button {
             Haptics.tapLight()
             showingWeekly = true
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: "flame.fill")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Theme.Palette.warning)
+                    .foregroundStyle(hot ? .white : Theme.Palette.warning)
                 Text("\(vm.streak)")
                     .font(Theme.Typo.bodyBold)
-                    .foregroundStyle(Theme.Palette.text)
+                    .foregroundStyle(hot ? .white : Theme.Palette.text)
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .background(Theme.Palette.surface, in: Capsule())
+            .background {
+                if hot {
+                    Capsule().fill(
+                        LinearGradient(
+                            colors: [Color.orange, Color.red],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                } else {
+                    Capsule().fill(Theme.Palette.surface)
+                }
+            }
+            .shadow(color: hot ? Color.orange.opacity(0.45) : .clear, radius: hot ? 10 : 0)
         }
         .accessibilityLabel("\(vm.streak) day streak. Tap to view weekly progress.")
     }

@@ -62,7 +62,31 @@ struct PlanPreviewView: View {
             Text(goalSubtitle)
                 .font(Theme.Typo.body)
                 .foregroundStyle(Theme.Palette.textMuted)
+            // Narrative line: turns the screen from a wall of numbers into
+            // a "here's your specific path" moment. Only shows when we can
+            // compute a meaningful weeks-to-goal estimate.
+            if let weeks = weeksToGoal {
+                Text("On this plan you'll hit your goal in about \(weeks) weeks.")
+                    .font(Theme.Typo.caption)
+                    .foregroundStyle(Theme.Palette.accent)
+                    .padding(.top, 2)
+            }
         }
+    }
+
+    /// Rough weeks-to-goal estimate from |goal − current| / |weeklyDeltaKg|.
+    /// Returns nil when goal weight is missing, delta is ~0 (maintain), or
+    /// the user already overshot in the right direction.
+    private var weeksToGoal: Int? {
+        guard let goalKg = inputs.goalWeightKg else { return nil }
+        let deltaKg = goalKg - inputs.weightKg
+        guard abs(deltaKg) >= 0.5 else { return nil }
+        guard abs(result.weeklyDeltaKg) >= 0.05 else { return nil }
+        // Only show when sign of progression matches direction needed.
+        if (deltaKg < 0) != (result.weeklyDeltaKg < 0) { return nil }
+        let weeks = Int((abs(deltaKg) / abs(result.weeklyDeltaKg)).rounded())
+        guard weeks >= 1, weeks <= 78 else { return nil }
+        return weeks
     }
 
     private var goalSubtitle: String {
