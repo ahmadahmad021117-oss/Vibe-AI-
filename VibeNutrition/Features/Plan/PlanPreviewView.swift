@@ -31,7 +31,10 @@ struct PlanPreviewView: View {
 
             VStack {
                 Spacer()
-                PrimaryButton(title: "See what's included") {
+                // CTA was "See what's included" — confusing because users
+                // didn't know they were about to hit the paywall. New CTA
+                // reads as a positive forward action.
+                PrimaryButton(title: "Start your plan") {
                     onContinue()
                 }
                 .padding(.horizontal, Theme.Spacing.lg)

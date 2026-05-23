@@ -67,16 +67,31 @@ private struct AnalyzingView: View {
                     .overlay(.black.opacity(0.55))
             }
             VStack(spacing: Theme.Spacing.md) {
-                Circle()
-                    .fill(Theme.Gradients.accent)
-                    .frame(width: 88, height: 88)
-                    .scaleEffect(pulse ? 1.08 : 0.92)
-                    .shadow(color: Theme.Palette.accent.opacity(0.6), radius: 24)
-                    .overlay(Image(systemName: "sparkles").font(.system(size: 34, weight: .heavy)).foregroundStyle(Theme.Palette.bg))
-                Text("Analyzing your meal…")
+                // Larger pulse range + outer halo. The original 0.92→1.08
+                // pulse was almost imperceptible on this dim overlay; users
+                // weren't sure if the app had frozen during the ~2s analyze.
+                ZStack {
+                    Circle()
+                        .fill(Theme.Palette.accent.opacity(0.35))
+                        .frame(width: 140, height: 140)
+                        .blur(radius: 24)
+                        .scaleEffect(pulse ? 1.15 : 0.85)
+                    Circle()
+                        .fill(Theme.Gradients.accent)
+                        .frame(width: 96, height: 96)
+                        .scaleEffect(pulse ? 1.12 : 0.88)
+                        .shadow(color: Theme.Palette.accent.opacity(0.7), radius: 28)
+                        .overlay(
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 36, weight: .heavy))
+                                .foregroundStyle(Theme.Palette.bg)
+                                .rotationEffect(.degrees(pulse ? 4 : -4))
+                        )
+                }
+                Text("Spotting every calorie…")
                     .font(Theme.Typo.h2)
                     .foregroundStyle(.white)
-                Text("Identifying items and estimating macros.")
+                Text("Our AI is reading the plate.")
                     .font(Theme.Typo.body)
                     .foregroundStyle(.white.opacity(0.7))
             }
@@ -84,7 +99,7 @@ private struct AnalyzingView: View {
         }
         .preferredColorScheme(.dark)
         .task {
-            withAnimation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true)) { pulse.toggle() }
+            withAnimation(.easeInOut(duration: 0.85).repeatForever(autoreverses: true)) { pulse.toggle() }
             await perform()
         }
     }

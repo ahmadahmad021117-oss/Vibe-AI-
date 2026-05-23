@@ -347,16 +347,27 @@ struct DashboardView: View {
     }
 
     private var emptyState: some View {
+        // The original empty state — a grey fork-and-knife with "Nothing
+        // logged yet" — felt like a death notice. New version uses a soft
+        // accent glow + action-first copy to encourage the very first log.
         VStack(spacing: Theme.Spacing.sm) {
-            Image(systemName: "fork.knife")
-                .font(.system(size: 36))
-                .foregroundStyle(Theme.Palette.textDim)
-            Text("Nothing logged yet.")
-                .font(Theme.Typo.body)
-                .foregroundStyle(Theme.Palette.textMuted)
-            Text("Tap Scan or Manual to log your first meal.")
+            ZStack {
+                Circle()
+                    .fill(Theme.Palette.accent.opacity(0.18))
+                    .frame(width: 88, height: 88)
+                    .blur(radius: 18)
+                Image(systemName: "sparkles")
+                    .font(.system(size: 32, weight: .heavy))
+                    .foregroundStyle(Theme.Gradients.accent)
+            }
+            Text("Let's get you started")
+                .font(Theme.Typo.bodyBold)
+                .foregroundStyle(Theme.Palette.text)
+            Text("Snap a meal or add it manually — takes 5 seconds.")
                 .font(Theme.Typo.caption)
-                .foregroundStyle(Theme.Palette.textDim)
+                .foregroundStyle(Theme.Palette.textMuted)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Theme.Spacing.md)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, Theme.Spacing.xl)

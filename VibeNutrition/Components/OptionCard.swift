@@ -46,9 +46,15 @@ struct OptionCard: View {
                 RoundedRectangle(cornerRadius: Theme.Radii.lg, style: .continuous)
                     .stroke(
                         isSelected ? Theme.Palette.accent : Theme.Palette.border,
-                        lineWidth: isSelected ? 1.5 : 1
+                        lineWidth: isSelected ? 2 : 1
                     )
             )
+            // Soft accent glow on selection so the card feels alive instead
+            // of just changing border colour. Important for the "doesn't feel
+            // dry" feedback from the user.
+            .shadow(color: isSelected ? Theme.Palette.accent.opacity(0.35) : .clear,
+                    radius: isSelected ? 14 : 0)
+            .scaleEffect(isSelected ? 1.02 : 1)
         }
         .animation(Theme.Motion.spring, value: isSelected)
         .accessibilityLabel(title)
