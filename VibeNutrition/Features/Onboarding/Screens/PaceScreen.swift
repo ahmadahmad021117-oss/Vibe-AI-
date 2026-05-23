@@ -5,10 +5,10 @@ import SwiftUI
 struct PaceScreen: View {
     @Bindable var state: OnboardingState
 
-    private let icons: [Pace: String] = [
-        .slow:   "tortoise.fill",
-        .medium: "figure.walk",
-        .fast:   "hare.fill",
+    private let style: [Pace: (String, Color)] = [
+        .slow:   ("tortoise.fill", Color(red: 0.20, green: 0.78, blue: 0.40)),
+        .medium: ("figure.walk",   .blue),
+        .fast:   ("hare.fill",     .red),
     ]
 
     var body: some View {
@@ -26,10 +26,12 @@ struct PaceScreen: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: Theme.Spacing.md) {
                     ForEach(Pace.allCases) { pace in
+                        let s = style[pace]
                         OptionCard(
                             title: pace.label,
                             subtitle: pace.subtitle,
-                            systemImage: icons[pace],
+                            systemImage: s?.0,
+                            tint: s?.1,
                             isSelected: state.pace == pace
                         ) {
                             state.pace = pace

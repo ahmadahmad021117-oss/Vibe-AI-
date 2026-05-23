@@ -8,13 +8,16 @@ import SwiftUI
 struct GoalScreen: View {
     @Bindable var state: OnboardingState
 
-    private let icons: [GoalType: String] = [
-        .loseWeight: "arrow.down.right.circle",
-        .gainWeight: "arrow.up.right.circle",
-        .buildMuscle: "figure.strengthtraining.traditional",
-        .maintain: "equal.circle",
-        .recomp: "arrow.triangle.2.circlepath.circle",
-        .improveHealth: "heart.circle",
+    // Each row gets a recognisable shape + colour. The previous monochrome
+    // arrow.circles all read the same at a glance — users were comparing
+    // labels, not icons.
+    private let style: [GoalType: (String, Color)] = [
+        .loseWeight:    ("flame.fill",                      .orange),
+        .gainWeight:    ("chart.line.uptrend.xyaxis",       Color(red: 0.20, green: 0.78, blue: 0.40)),
+        .buildMuscle:   ("dumbbell.fill",                   .blue),
+        .maintain:      ("equal.square.fill",               .teal),
+        .recomp:        ("arrow.triangle.2.circlepath",     .purple),
+        .improveHealth: ("heart.fill",                      .pink),
     ]
 
     var body: some View {
@@ -32,9 +35,11 @@ struct GoalScreen: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: Theme.Spacing.sm) {
                     ForEach(GoalType.allCases) { goal in
+                        let s = style[goal]
                         OptionCard(
                             title: goal.label,
-                            systemImage: icons[goal] ?? "circle",
+                            systemImage: s?.0 ?? "circle",
+                            tint: s?.1,
                             isSelected: state.goal == goal
                         ) {
                             state.goal = goal

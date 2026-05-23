@@ -24,13 +24,15 @@ struct MealSuggestionsScreen: View {
                 OptionCard(
                     title: "Yes, suggest meals",
                     systemImage: "sparkles",
+                    tint: Theme.Palette.accent,
                     isSelected: state.mealSuggestionsEnabled
                 ) {
                     state.mealSuggestionsEnabled = true
                 }
                 OptionCard(
                     title: "No thanks",
-                    systemImage: "xmark.circle",
+                    systemImage: "xmark",
+                    tint: .gray,
                     isSelected: !state.mealSuggestionsEnabled
                 ) {
                     state.mealSuggestionsEnabled = false
