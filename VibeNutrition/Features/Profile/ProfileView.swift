@@ -16,6 +16,7 @@ struct ProfileView: View {
     @State private var showingTerms = false
     @State private var showingEmailSheet = false
     @State private var showingPaceSheet = false
+    @State private var showingPaywall = false
 
     var body: some View {
         ZStack {
@@ -73,6 +74,12 @@ struct ProfileView: View {
         }
         .sheet(isPresented: $showingPaceSheet, onDismiss: { Task { await load() } }) {
             PaceSheet()
+        }
+        .sheet(isPresented: $showingPaywall, onDismiss: { Task { await load() } }) {
+            PaywallView(
+                onUnlocked: { showingPaywall = false },
+                onSkip:     { showingPaywall = false }
+            )
         }
     }
 
@@ -163,6 +170,16 @@ struct ProfileView: View {
                 value: EntitlementService.shared.isPremium ? "Premium" : "Free",
                 valueColor: EntitlementService.shared.isPremium ? Theme.Palette.accent : Theme.Palette.textMuted
             )
+
+            // Free users get an in-line gradient CTA that opens the paywall as a
+            // sheet. Without this, free users have no path to upgrade after
+            // onboarding — they're permanently stuck on the free tier and we
+            // never collect revenue.
+            if !EntitlementService.shared.isPremium {
+                divider
+                upgradeCTA
+            }
+
             divider
             tappableRow(
                 icon: "gear",
@@ -174,6 +191,39 @@ struct ProfileView: View {
                 }
             }
         }
+    }
+
+    /// Big gradient "Upgrade" pill that opens the paywall. Designed to be the
+    /// most eye-catching control in Settings for free users.
+    private var upgradeCTA: some View {
+        Button {
+            Haptics.tapMedium()
+            showingPaywall = true
+        } label: {
+            HStack(spacing: Theme.Spacing.sm) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(Theme.Palette.bg)
+                Text("Unlock Premium")
+                    .font(Theme.Typo.bodyBold)
+                    .foregroundStyle(Theme.Palette.bg)
+                Spacer()
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(Theme.Palette.bg)
+            }
+            .padding(.horizontal, Theme.Spacing.md)
+            .padding(.vertical, 12)
+            .background(
+                Theme.Gradients.accent,
+                in: RoundedRectangle(cornerRadius: Theme.Radii.md, style: .continuous)
+            )
+            .padding(.horizontal, Theme.Spacing.sm)
+            .padding(.vertical, Theme.Spacing.sm)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Upgrade to Premium")
     }
 
     private var notificationsSection: some View {
