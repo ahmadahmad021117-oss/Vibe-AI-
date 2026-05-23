@@ -43,7 +43,9 @@ struct ScanReviewView: View {
                     totalsCard
                     itemsList
 
-                    Spacer(minLength: 120)
+                    // Reserve space so the last food row doesn't tuck behind
+                    // the floating Save / Retake actions bar.
+                    Spacer(minLength: 180)
                 }
                 .padding(.horizontal, Theme.Spacing.lg)
                 .padding(.top, Theme.Spacing.md)
@@ -120,24 +122,27 @@ struct ScanReviewView: View {
     }
 
     private var actionsBar: some View {
-        VStack(spacing: Theme.Spacing.sm) {
-            PrimaryButton(title: saving ? "Saving…" : "Save to today", isEnabled: !saving) {
-                Task { await save() }
-            }
-            SecondaryButton(title: "Retake") { onRetake() }
-        }
-        .padding(.horizontal, Theme.Spacing.lg)
-        .padding(.bottom, Theme.Spacing.lg)
-        .background(
+        // Layered: short fade above the controls, solid bg behind them, so
+        // the last food row never bleeds through the Save / Retake buttons.
+        VStack(spacing: 0) {
             LinearGradient(
                 colors: [Theme.Palette.bg.opacity(0), Theme.Palette.bg],
                 startPoint: .top, endPoint: .bottom
             )
-            .frame(height: 160)
-            .frame(maxWidth: .infinity)
-            .allowsHitTesting(false),
-            alignment: .bottom
-        )
+            .frame(height: 28)
+            .allowsHitTesting(false)
+
+            VStack(spacing: Theme.Spacing.sm) {
+                PrimaryButton(title: saving ? "Saving…" : "Save to today", isEnabled: !saving) {
+                    Task { await save() }
+                }
+                SecondaryButton(title: "Retake") { onRetake() }
+            }
+            .padding(.horizontal, Theme.Spacing.lg)
+            .padding(.top, Theme.Spacing.sm)
+            .padding(.bottom, Theme.Spacing.lg)
+            .background(Theme.Palette.bg)
+        }
     }
 
     private func totals() -> (kcal: Int, protein: Double, carbs: Double, fat: Double) {

@@ -23,7 +23,10 @@ struct PlanPreviewView: View {
 
                     rationale
 
-                    Spacer(minLength: Theme.Spacing.xl)
+                    // Last row of `rationale` (the Goal-adjustment line) was
+                    // landing behind the Start-your-plan button. Reserve
+                    // enough scroll inset to clear the floating actions bar.
+                    Spacer(minLength: 160)
                 }
                 .padding(.horizontal, Theme.Spacing.lg)
                 .padding(.top, Theme.Spacing.xl)
@@ -34,21 +37,22 @@ struct PlanPreviewView: View {
                 // CTA was "See what's included" — confusing because users
                 // didn't know they were about to hit the paywall. New CTA
                 // reads as a positive forward action.
-                PrimaryButton(title: "Start your plan") {
-                    onContinue()
-                }
-                .padding(.horizontal, Theme.Spacing.lg)
-                .padding(.bottom, Theme.Spacing.lg)
-                .background(
+                VStack(spacing: 0) {
                     LinearGradient(
                         colors: [Theme.Palette.bg.opacity(0), Theme.Palette.bg],
                         startPoint: .top, endPoint: .bottom
                     )
-                    .frame(height: 120)
-                    .frame(maxWidth: .infinity)
-                    .allowsHitTesting(false),
-                    alignment: .bottom
-                )
+                    .frame(height: 28)
+                    .allowsHitTesting(false)
+
+                    PrimaryButton(title: "Start your plan") {
+                        onContinue()
+                    }
+                    .padding(.horizontal, Theme.Spacing.lg)
+                    .padding(.top, Theme.Spacing.sm)
+                    .padding(.bottom, Theme.Spacing.lg)
+                    .background(Theme.Palette.bg)
+                }
             }
         }
         .preferredColorScheme(.dark)

@@ -25,13 +25,22 @@ struct OptionCard: View {
                     Text(title)
                         .font(Theme.Typo.bodyBold)
                         .foregroundStyle(Theme.Palette.text)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                     if let subtitle {
+                        // lineLimit(1) + scale-down keeps "About 0.75 kg /
+                        // week" on a single row even when the checkmark badge
+                        // takes the trailing column. Without it the subtitle
+                        // wrapped to 2 lines and the card height jumped.
                         Text(subtitle)
                             .font(Theme.Typo.caption)
                             .foregroundStyle(Theme.Palette.textMuted)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                     }
                 }
-                Spacer()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Spacer(minLength: Theme.Spacing.xs)
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 22, weight: .semibold))

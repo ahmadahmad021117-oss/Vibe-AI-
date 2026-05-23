@@ -20,13 +20,22 @@ struct OnboardingCard<Content: View>: View {
 
                 VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
                     Text(title)
-                        .font(Theme.Typo.h1)
+                        // h1 (32pt) was producing 3–4 line wraps on long
+                        // questions ("How quickly do you want to reach your
+                        // goal?"). h2 (24pt) keeps the heading strong without
+                        // dominating the screen; minimumScaleFactor catches
+                        // the edge cases without re-flowing the layout.
+                        .font(Theme.Typo.h2)
                         .foregroundStyle(Theme.Palette.text)
                         .multilineTextAlignment(.leading)
+                        .lineLimit(3)
+                        .minimumScaleFactor(0.85)
+                        .fixedSize(horizontal: false, vertical: true)
                     if let subtitle {
                         Text(subtitle)
                             .font(Theme.Typo.body)
                             .foregroundStyle(Theme.Palette.textMuted)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
