@@ -24,7 +24,10 @@ struct DashboardView: View {
                         .padding(.horizontal, Theme.Spacing.lg)
                     todaySection
                         .padding(.horizontal, Theme.Spacing.lg)
-                    Spacer(minLength: 80)
+                    // Tab bar is ~83pt + safe-area inset. 80pt left part of the
+                    // empty-state card clipped behind it; 140 keeps content fully
+                    // visible above the bar.
+                    Spacer(minLength: 140)
                 }
                 .padding(.top, Theme.Spacing.sm)
             }
@@ -152,7 +155,7 @@ struct DashboardView: View {
                     .rotationEffect(.degrees(-90))
                     .animation(Theme.Motion.spring, value: vm.kcalProgress)
                 VStack(spacing: 0) {
-                    Text("\(vm.kcalRemaining)")
+                    Text(vm.kcalRemaining.grouped)
                         .font(Theme.Typo.numeralXL)
                         .foregroundStyle(Theme.Palette.text)
                         .contentTransition(.numericText(value: Double(vm.kcalRemaining)))
@@ -160,7 +163,7 @@ struct DashboardView: View {
                         .font(Theme.Typo.body)
                         .foregroundStyle(Theme.Palette.textMuted)
                     if let t = vm.target {
-                        Text("of \(t.kcal)")
+                        Text("of \(t.kcal.grouped)")
                             .font(Theme.Typo.caption)
                             .foregroundStyle(Theme.Palette.textDim)
                     }
@@ -231,6 +234,8 @@ struct DashboardView: View {
     private var vitaminsCard: some View {
         let consumed = vm.microsConsumed
         let target = vm.microsTarget
+        // Every row on the card uses the same digit count — Vitamin C used to
+        // render "0 / 90 mg" next to "0.0 / 15.0 μg", which looked like a bug.
         return nutrientCard(title: "Vitamins") {
             nutrientBar(label: "Vitamin D",
                         consumed: consumed.vitaminDMcg ?? 0, target: target.vitaminDMcg ?? 0,
@@ -240,17 +245,19 @@ struct DashboardView: View {
                         unit: "μg", color: Theme.Palette.accentDeep, fractionDigits: 1)
             nutrientBar(label: "Vitamin C",
                         consumed: consumed.vitaminCMg ?? 0, target: target.vitaminCMg ?? 0,
-                        unit: "mg", color: Theme.Palette.accentAlt)
+                        unit: "mg", color: Theme.Palette.accentAlt, fractionDigits: 1)
         }
     }
 
     private var mineralsCard: some View {
         let consumed = vm.microsConsumed
         let target = vm.microsTarget
+        // Same consistency rule as Vitamins: Magnesium previously skipped the
+        // decimal while Iron/Zinc kept it — visually jarring inside one card.
         return nutrientCard(title: "Minerals") {
             nutrientBar(label: "Magnesium",
                         consumed: consumed.magnesiumMg ?? 0, target: target.magnesiumMg ?? 0,
-                        unit: "mg", color: Theme.Palette.accent)
+                        unit: "mg", color: Theme.Palette.accent, fractionDigits: 1)
             nutrientBar(label: "Iron",
                         consumed: consumed.ironMg ?? 0, target: target.ironMg ?? 0,
                         unit: "mg", color: Theme.Palette.accentDeep, fractionDigits: 1)
@@ -307,9 +314,11 @@ struct DashboardView: View {
     }
 
     private func format(_ value: Double, digits: Int) -> String {
-        digits <= 0
-            ? "\(Int(value.rounded()))"
-            : String(format: "%.\(digits)f", value)
+        // Per-card consistency: if any row on a card needs a decimal (e.g. Iron
+        // at "8.0 mg"), every row on the same card should match. We pick the
+        // digit count at the call-site, but route through `Double.grouped` so
+        // the thousands separator is always a comma (en_US), never a thin space.
+        value.grouped(max(0, digits))
     }
 
     private var actionsRow: some View {
@@ -398,8 +407,11 @@ struct DashboardView: View {
         switch hour {
         case 5..<12: return "Good morning"
         case 12..<17: return "Good afternoon"
-        case 17..<22: return "Good evening"
-        default: return "Late night"
+        // 17:00–05:00 stays a neutral "Good evening." The previous "Late night"
+        // label fired for ~7 hours and read as a soft judgment for users who
+        // legitimately eat dinner past 22:00 — exactly the audience a gain plan
+        // needs to keep logging.
+        default: return "Good evening"
         }
     }
 

@@ -163,9 +163,9 @@ struct PlanPreviewView: View {
             Text("How we got there")
                 .font(Theme.Typo.h3)
                 .foregroundStyle(Theme.Palette.text)
-            BulletRow(label: "BMR (Mifflin-St Jeor)", value: "\(result.bmr) kcal")
+            BulletRow(label: "BMR (Mifflin-St Jeor)", value: "\(result.bmr.grouped) kcal")
             BulletRow(label: "Activity multiplier", value: String(format: "×%.2f", result.activityMultiplier))
-            BulletRow(label: "Daily energy needs (TDEE)", value: "\(result.tdee) kcal")
+            BulletRow(label: "Daily energy needs (TDEE)", value: "\(result.tdee.grouped) kcal")
             BulletRow(label: "Goal adjustment", value: deltaPercentText)
         }
         .padding(Theme.Spacing.md)
@@ -192,7 +192,7 @@ private struct KcalRing: View {
                 .stroke(Theme.Gradients.accent, style: StrokeStyle(lineWidth: 20, lineCap: .round))
                 .rotationEffect(.degrees(-90))
             VStack(spacing: 0) {
-                Text("\(kcal)")
+                Text(kcal.grouped)
                     .font(Theme.Typo.numeralXL)
                     .foregroundStyle(Theme.Palette.text)
                     .contentTransition(.numericText(value: Double(kcal)))

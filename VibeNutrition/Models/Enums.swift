@@ -19,6 +19,32 @@ enum GoalType: String, Codable, CaseIterable, Identifiable {
         case .improveHealth: return "Improve health"
         }
     }
+
+    /// Direction the goal weight should move relative to the current weight.
+    /// Drives both the goal-weight slider default and the validation that
+    /// blocks Continue when the user picks a target inconsistent with the goal.
+    enum Direction { case up, down, flat }
+    var direction: Direction {
+        switch self {
+        case .gainWeight, .buildMuscle: return .up
+        case .loseWeight: return .down
+        // Maintain / recomp / improve health all sit around the current weight.
+        // Recomp can drift either way but we don't enforce a delta — the user
+        // can land exactly on their current weight without seeing a warning.
+        case .maintain, .recomp, .improveHealth: return .flat
+        }
+    }
+
+    /// Reasonable default delta in kg to seed the goal-weight slider with after
+    /// the user picks a goal. Avoids the bug where the slider sat at the same
+    /// value as the current weight and produced a 0-kg projection.
+    var defaultDeltaKg: Double {
+        switch direction {
+        case .up:   return 5
+        case .down: return -5
+        case .flat: return 0
+        }
+    }
 }
 
 enum MainFocus: String, Codable, CaseIterable, Identifiable {

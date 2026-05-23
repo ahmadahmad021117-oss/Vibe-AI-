@@ -22,13 +22,13 @@ struct ManualEntrySheet: View {
                         .font(Theme.Typo.h2)
                         .foregroundStyle(Theme.Palette.text)
 
-                    field("Name", value: $name)
-                    field("Grams", value: $grams, keyboard: .decimalPad)
-                    field("kcal", value: $kcal, keyboard: .numberPad)
+                    field("Name", value: $name, placeholder: "e.g. Chicken & rice")
+                    field("Grams", value: $grams, placeholder: "150", keyboard: .decimalPad)
+                    field("kcal", value: $kcal, placeholder: kcalPlaceholder, keyboard: .numberPad)
                     HStack(spacing: Theme.Spacing.sm) {
-                        field("Protein g", value: $protein, keyboard: .decimalPad)
-                        field("Carbs g", value: $carbs, keyboard: .decimalPad)
-                        field("Fat g", value: $fat, keyboard: .decimalPad)
+                        field("Protein g", value: $protein, placeholder: "0", keyboard: .decimalPad)
+                        field("Carbs g", value: $carbs, placeholder: "0", keyboard: .decimalPad)
+                        field("Fat g", value: $fat, placeholder: "0", keyboard: .decimalPad)
                     }
 
                     if let error {
@@ -50,12 +50,13 @@ struct ManualEntrySheet: View {
     }
 
     private func field(_ label: String, value: Binding<String>,
+                       placeholder: String = "",
                        keyboard: UIKeyboardType = .default) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label)
                 .font(Theme.Typo.caption)
                 .foregroundStyle(Theme.Palette.textMuted)
-            TextField("", text: value)
+            TextField("", text: value, prompt: Text(placeholder).foregroundStyle(Theme.Palette.textDim))
                 .keyboardType(keyboard)
                 .padding()
                 .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.md))
@@ -63,8 +64,29 @@ struct ManualEntrySheet: View {
         }
     }
 
+    /// Live-computed kcal from the macros, shown as the kcal field's
+    /// placeholder. Lets the user fill macros only and skip kcal — Save uses
+    /// the computed value when the field is left blank.
+    private var computedKcal: Int? {
+        let p = Double(protein) ?? 0
+        let c = Double(carbs) ?? 0
+        let f = Double(fat) ?? 0
+        let total = p * 4 + c * 4 + f * 9
+        return total > 0 ? Int(total.rounded()) : nil
+    }
+
+    private var kcalPlaceholder: String {
+        if let k = computedKcal { return "\(k) (from macros)" }
+        return "0"
+    }
+
+    private var effectiveKcal: Int? {
+        if let typed = Int(kcal) { return typed }
+        return computedKcal
+    }
+
     private var canSave: Bool {
-        !name.isEmpty && Double(grams) != nil && Int(kcal) != nil
+        !name.isEmpty && Double(grams) != nil && effectiveKcal != nil
     }
 
     private func save() async {
@@ -72,7 +94,7 @@ struct ManualEntrySheet: View {
         defer { saving = false }
         guard
             let gramsD = Double(grams),
-            let kcalI = Int(kcal)
+            let kcalI = effectiveKcal
         else {
             error = "Grams and kcal are required."
             return

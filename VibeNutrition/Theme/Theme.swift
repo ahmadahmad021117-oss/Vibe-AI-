@@ -79,3 +79,23 @@ extension Color {
         self.init(.sRGB, red: r, green: g, blue: b, opacity: alpha)
     }
 }
+
+/// Number formatting helpers locked to en_US so the grouping separator is a
+/// comma, matching the English-only copy. SwiftUI's `Text("\(intValue)")`
+/// otherwise uses the device locale and shows "4 026" on EU phones — confusing
+/// next to English labels like "kcal left".
+extension Int {
+    var grouped: String { formatted(.number.locale(Locale(identifier: "en_US"))) }
+}
+
+extension Double {
+    /// Always show `digits` fractional digits, with US grouping. Use this on
+    /// any number rendered next to English unit copy (g, mg, µg, kcal, kg).
+    func grouped(_ digits: Int) -> String {
+        formatted(
+            .number
+                .locale(Locale(identifier: "en_US"))
+                .precision(.fractionLength(digits))
+        )
+    }
+}

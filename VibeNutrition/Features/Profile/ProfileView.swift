@@ -122,11 +122,11 @@ struct ProfileView: View {
                 showingEmailSheet = true
             }
             divider
-            tappableRow(
-                icon: "rectangle.portrait.and.arrow.right",
-                tint: .red,
-                label: "Sign out"
-            ) {
+            // Sign out doesn't navigate anywhere — drop the chevron, tint the
+            // label danger-red so the row reads as destructive (consistent
+            // with the Delete-account row in the danger zone below).
+            Button {
+                Haptics.tapLight()
                 Task {
                     do {
                         try await AuthService.shared.signOut()
@@ -135,7 +135,20 @@ struct ProfileView: View {
                         self.error = error.localizedDescription
                     }
                 }
+            } label: {
+                HStack(spacing: Theme.Spacing.sm) {
+                    iconBadge(systemName: "rectangle.portrait.and.arrow.right", tint: .red)
+                    Text("Sign out")
+                        .font(Theme.Typo.body)
+                        .foregroundStyle(Theme.Palette.danger)
+                    Spacer()
+                }
+                .padding(.horizontal, Theme.Spacing.md)
+                .padding(.vertical, 10)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Sign out")
         }
     }
 
