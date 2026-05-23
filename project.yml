@@ -9,10 +9,14 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.9"
-    # Code signing: automatic, no fixed team. Xcode auto-picks your personal
-    # team after you sign in at Xcode → Settings → Accounts. CI overrides
-    # this with CODE_SIGNING_ALLOWED=NO via the build invocation.
+    # Code signing: automatic, team picked up from the DEVELOPMENT_TEAM env var
+    # at xcodegen time. Locally Xcode falls back to your personal team after
+    # you sign in at Xcode → Settings → Accounts. CI must export
+    # DEVELOPMENT_TEAM=<your-10-char-team-id> before running `xcodegen` and
+    # `fastlane beta`. CI overrides signing entirely with
+    # CODE_SIGNING_ALLOWED=NO via the build invocation.
     CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: ${DEVELOPMENT_TEAM}
     ENABLE_USER_SCRIPT_SANDBOXING: NO
     GENERATE_INFOPLIST_FILE: YES
 configs:
@@ -47,7 +51,8 @@ targets:
         LSRequiresIPhoneOS: true
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-        UILaunchStoryboardName: LaunchScreen
+        UILaunchScreen:
+          UIColorName: LaunchBackground
         UIUserInterfaceStyle: Dark
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false

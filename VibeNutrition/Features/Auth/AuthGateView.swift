@@ -12,6 +12,11 @@ struct AuthGateView: View {
     @State private var currentNonce: String?
     /// Email form starts collapsed — most users sign in with Apple. Reveals on tap.
     @State private var showingEmailForm = false
+    /// Drives the entrance animation on the hero icon. Starts at 0 (small) and
+    /// springs to 1 once the view appears, giving the first impression a bit
+    /// of life — important because a flat icon reads "boring utility" to the
+    /// young Snapchat-ad audience this app targets.
+    @State private var heroAppeared = false
 
     var body: some View {
         ZStack {
@@ -42,19 +47,48 @@ struct AuthGateView: View {
             .padding(.horizontal, Theme.Spacing.lg)
             .animation(Theme.Motion.spring, value: showingEmailForm)
         }
+        .onAppear {
+            // Stagger the hero spring slightly so the first frame doesn't catch
+            // it mid-bounce — feels more deliberate.
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.55).delay(0.05)) {
+                heroAppeared = true
+            }
+        }
     }
 
     private var hero: some View {
         VStack(spacing: Theme.Spacing.sm) {
-            Image(systemName: "bolt.fill")
-                .font(.system(size: 56, weight: .heavy))
-                .foregroundStyle(Theme.Gradients.accent)
-            Text("Welcome to VibeCal")
+            // Soft accent glow behind the bolt — gives the hero some depth
+            // instead of a flat icon on a black void.
+            ZStack {
+                Circle()
+                    .fill(Theme.Palette.accent.opacity(0.18))
+                    .frame(width: 160, height: 160)
+                    .blur(radius: 30)
+                    .scaleEffect(heroAppeared ? 1 : 0.6)
+                Image(systemName: "bolt.fill")
+                    .font(.system(size: 64, weight: .heavy))
+                    .foregroundStyle(Theme.Gradients.accent)
+                    .scaleEffect(heroAppeared ? 1 : 0.5)
+                    .rotationEffect(.degrees(heroAppeared ? 0 : -12))
+            }
+            .padding(.bottom, Theme.Spacing.xs)
+
+            Text("VibeCal")
                 .font(Theme.Typo.h1)
                 .foregroundStyle(Theme.Palette.text)
-            Text("Your AI calorie coach.")
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .padding(.horizontal, Theme.Spacing.md)
+                .opacity(heroAppeared ? 1 : 0)
+                .offset(y: heroAppeared ? 0 : 8)
+
+            Text("AI calorie tracking that actually clicks.")
                 .font(Theme.Typo.body)
                 .foregroundStyle(Theme.Palette.textMuted)
+                .multilineTextAlignment(.center)
+                .opacity(heroAppeared ? 1 : 0)
+                .offset(y: heroAppeared ? 0 : 8)
         }
     }
 
@@ -137,7 +171,12 @@ struct AuthGateView: View {
     }
 
     private func configureAppleRequest(_ request: ASAuthorizationAppleIDRequest) {
-        let nonce = randomNonceString()
+        // randomNonceString can fail if the system RNG is unavailable. We surface
+        // the failure on the view (rather than crashing) so the user can retry.
+        guard let nonce = randomNonceString() else {
+            error = "Couldn't start Sign in with Apple. Please try again."
+            return
+        }
         currentNonce = nonce
         request.requestedScopes = [.email, .fullName]
         request.nonce = sha256(nonce)
@@ -173,7 +212,11 @@ struct AuthGateView: View {
 
     // MARK: - Nonce helpers
 
-    private func randomNonceString(length: Int = 32) -> String {
+    /// Returns a cryptographically-random nonce of the requested length, or `nil`
+    /// if the system RNG fails. Apple's sample uses `fatalError` here, but a
+    /// crash in the auth flow would reach the App Store, so we surface the
+    /// failure to the caller instead.
+    private func randomNonceString(length: Int = 32) -> String? {
         precondition(length > 0)
         let charset: [Character] = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._")
         var result = ""
@@ -181,9 +224,7 @@ struct AuthGateView: View {
         while remaining > 0 {
             var randoms = [UInt8](repeating: 0, count: 16)
             let status = SecRandomCopyBytes(kSecRandomDefault, randoms.count, &randoms)
-            if status != errSecSuccess {
-                fatalError("Unable to generate nonce: \(status)")
-            }
+            if status != errSecSuccess { return nil }
             for random in randoms where remaining > 0 {
                 if random < charset.count {
                     result.append(charset[Int(random)])
