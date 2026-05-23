@@ -8,6 +8,8 @@ struct PaywallView: View {
     @State private var purchases = PurchaseService.shared
     @State private var selectedPackage: Package?
     @State private var processing = false
+    @State private var showingPrivacy = false
+    @State private var showingTerms = false
 
     var body: some View {
         ZStack {
@@ -38,6 +40,8 @@ struct PaywallView: View {
             await purchases.loadOfferings()
             selectedPackage = defaultPackage()
         }
+        .sheet(isPresented: $showingPrivacy) { PrivacyPolicyView() }
+        .sheet(isPresented: $showingTerms) { TermsOfServiceView() }
         .preferredColorScheme(.dark)
     }
 
@@ -233,10 +237,23 @@ struct PaywallView: View {
     }
 
     private var finePrint: some View {
-        Text("Subscription auto-renews unless cancelled at least 24 hours before the end of the period. Manage in App Store > Subscriptions.")
+        // App Review guideline 3.1.2(a): every auto-renewing-subscription screen
+        // must surface working Privacy Policy + Terms (EULA) links. Without these
+        // the paywall is rejected at submission.
+        VStack(spacing: Theme.Spacing.xs) {
+            Text("Subscription auto-renews unless cancelled at least 24 hours before the end of the period. Manage in App Store > Subscriptions.")
+                .font(Theme.Typo.caption)
+                .foregroundStyle(Theme.Palette.textDim)
+                .multilineTextAlignment(.center)
+
+            HStack(spacing: Theme.Spacing.md) {
+                Button("Privacy Policy") { showingPrivacy = true }
+                Text("·").foregroundStyle(Theme.Palette.textDim)
+                Button("Terms of Service") { showingTerms = true }
+            }
             .font(Theme.Typo.caption)
-            .foregroundStyle(Theme.Palette.textDim)
-            .multilineTextAlignment(.center)
+            .foregroundStyle(Theme.Palette.textMuted)
+        }
     }
 
     /// CTA label changes based on whether the selected package has an intro

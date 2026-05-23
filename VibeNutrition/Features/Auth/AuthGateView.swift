@@ -12,11 +12,18 @@ struct AuthGateView: View {
     @State private var currentNonce: String?
     /// Email form starts collapsed — most users sign in with Apple. Reveals on tap.
     @State private var showingEmailForm = false
+    /// After a failed sign-in we surface a secondary "Create account" button
+    /// rather than silently creating an account for the user. Previous behaviour
+    /// of "if signIn fails, signUp" masked wrong-password mistakes and produced
+    /// "Email already in use" loops for returning users.
+    @State private var signInFailed = false
     /// Drives the entrance animation on the hero icon. Starts at 0 (small) and
     /// springs to 1 once the view appears, giving the first impression a bit
     /// of life — important because a flat icon reads "boring utility" to the
     /// young Snapchat-ad audience this app targets.
     @State private var heroAppeared = false
+    @State private var showingPrivacy = false
+    @State private var showingTerms = false
 
     var body: some View {
         ZStack {
@@ -42,11 +49,15 @@ struct AuthGateView: View {
                     revealEmailButton
                 }
 
-                Spacer().frame(height: Theme.Spacing.lg)
+                legalFooter
+
+                Spacer().frame(height: Theme.Spacing.sm)
             }
             .padding(.horizontal, Theme.Spacing.lg)
             .animation(Theme.Motion.spring, value: showingEmailForm)
         }
+        .sheet(isPresented: $showingPrivacy) { PrivacyPolicyView() }
+        .sheet(isPresented: $showingTerms) { TermsOfServiceView() }
         .onAppear {
             // Stagger the hero spring slightly so the first frame doesn't catch
             // it mid-bounce — feels more deliberate.
@@ -83,13 +94,32 @@ struct AuthGateView: View {
                 .opacity(heroAppeared ? 1 : 0)
                 .offset(y: heroAppeared ? 0 : 8)
 
-            Text("AI calorie tracking that actually clicks.")
+            Text("Calorie tracking that finally sticks.")
                 .font(Theme.Typo.body)
                 .foregroundStyle(Theme.Palette.textMuted)
                 .multilineTextAlignment(.center)
                 .opacity(heroAppeared ? 1 : 0)
                 .offset(y: heroAppeared ? 0 : 8)
         }
+    }
+
+    /// Footer with the two legal links + an account-creation disclosure. Required
+    /// before any sign-in/sign-up flow (App Review 3.1.2 / 5.1.1) and surfaces
+    /// the policies BEFORE the user creates an account, not after.
+    private var legalFooter: some View {
+        VStack(spacing: 4) {
+            Text("By continuing you agree to our")
+                .font(Theme.Typo.caption)
+                .foregroundStyle(Theme.Palette.textDim)
+            HStack(spacing: Theme.Spacing.sm) {
+                Button("Terms of Service") { showingTerms = true }
+                Text("·").foregroundStyle(Theme.Palette.textDim)
+                Button("Privacy Policy") { showingPrivacy = true }
+            }
+            .font(Theme.Typo.caption)
+            .foregroundStyle(Theme.Palette.textMuted)
+        }
+        .padding(.top, Theme.Spacing.xs)
     }
 
     private var revealEmailButton: some View {
@@ -147,26 +177,55 @@ struct AuthGateView: View {
             }
             .disabled(isLoading || email.isEmpty || password.isEmpty)
             .opacity((isLoading || email.isEmpty || password.isEmpty) ? 0.5 : 1)
+
+            // Only shows up after a failed sign-in attempt. Keeps the "no
+            // duplicate-account" guarantee while still offering a first-time
+            // user a clear path to sign up.
+            if signInFailed {
+                Button {
+                    Haptics.tapLight()
+                    Task { await emailSignUp() }
+                }
+                label: {
+                    Text("Don't have an account? **Create one**")
+                        .font(Theme.Typo.caption)
+                        .foregroundStyle(Theme.Palette.textMuted)
+                }
+                .disabled(isLoading || email.isEmpty || password.isEmpty)
+            }
         }
         .transition(.opacity.combined(with: .move(edge: .bottom)))
     }
 
     private func emailSignIn() async {
         error = nil
+        signInFailed = false
         isLoading = true
         defer { isLoading = false }
         do {
             try await AuthService.shared.signIn(email: email, password: password)
             onAuthenticated()
         } catch {
-            // Fall back to sign-up on "Invalid login credentials" so first-launch flows work.
-            do {
-                try await AuthService.shared.signUp(email: email, password: password)
-                try await AuthService.shared.signIn(email: email, password: password)
-                onAuthenticated()
-            } catch {
-                self.error = error.friendlyMessage
-            }
+            // Supabase returns the same "Invalid login credentials" for both
+            // wrong-password and user-not-found, so we can't auto-route. Surface
+            // the error and let the user explicitly choose "Create one" if they
+            // are signing up for the first time. This is also App Store-friendly:
+            // no covert account creation.
+            self.error = "Couldn't sign in. Check your email and password, or create a new account."
+            self.signInFailed = true
+        }
+    }
+
+    private func emailSignUp() async {
+        error = nil
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            try await AuthService.shared.signUp(email: email, password: password)
+            try await AuthService.shared.signIn(email: email, password: password)
+            onAuthenticated()
+        } catch {
+            self.error = error.friendlyMessage
         }
     }
 

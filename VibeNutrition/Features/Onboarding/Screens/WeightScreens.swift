@@ -50,7 +50,26 @@ struct GoalWeightScreen: View {
                 withAnimation(Theme.Motion.spring) { state.advance() }
             }
         ) {
-            WeightEntry(unitsPref: $state.unitsPref, weightKg: $state.goalWeightKg)
+            VStack(spacing: Theme.Spacing.md) {
+                WeightEntry(unitsPref: $state.unitsPref, weightKg: $state.goalWeightKg)
+                if let hint = state.goalWeightHint {
+                    Text(hint)
+                        .font(Theme.Typo.caption)
+                        .foregroundStyle(Theme.Palette.warning)
+                        .multilineTextAlignment(.center)
+                        .transition(.opacity)
+                }
+            }
+            .animation(Theme.Motion.spring, value: state.goalWeightHint)
+        }
+        .onAppear {
+            // Seed the goal-weight slider with a sensible default in the
+            // direction of the chosen goal (e.g. +5 kg for Gain). Without this
+            // the slider sat at 70 kg next to a current of 70 kg and the
+            // downstream plan said "Maintain · 0.00 kg/week" for a Gain user.
+            if state.goalWeightKg == nil, let cur = state.currentWeightKg, let goal = state.goal {
+                state.goalWeightKg = cur + goal.defaultDeltaKg
+            }
         }
     }
 }

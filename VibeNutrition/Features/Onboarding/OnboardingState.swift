@@ -15,7 +15,10 @@ final class OnboardingState: Codable {
     var age: Int?
     var sex: SexType?
     var heightCm: Double?
-    var healthSyncEnabled: Bool = false
+    // Default is true: matches the "Recommended" badge on HealthSyncScreen so
+    // the row labeled Recommended is the row that's actually pre-selected.
+    // The system permission sheet still gates real data access.
+    var healthSyncEnabled: Bool = true
     var trainingDaysPerWeek: Int?
     var mainFocus: MainFocus?
     var mealsPerDay: Int?
@@ -47,7 +50,7 @@ final class OnboardingState: Codable {
         let age = try c.decodeIfPresent(Int.self, forKey: .age)
         let sex = try c.decodeIfPresent(SexType.self, forKey: .sex)
         let heightCm = try c.decodeIfPresent(Double.self, forKey: .heightCm)
-        let healthSyncEnabled = try c.decodeIfPresent(Bool.self, forKey: .healthSyncEnabled) ?? false
+        let healthSyncEnabled = try c.decodeIfPresent(Bool.self, forKey: .healthSyncEnabled) ?? true
         let trainingDaysPerWeek = try c.decodeIfPresent(Int.self, forKey: .trainingDaysPerWeek)
         let mainFocus = try c.decodeIfPresent(MainFocus.self, forKey: .mainFocus)
         let mealsPerDay = try c.decodeIfPresent(Int.self, forKey: .mealsPerDay)
@@ -110,7 +113,7 @@ final class OnboardingState: Codable {
         switch step {
         case .goal: return goal != nil
         case .currentWeight: return currentWeightKg != nil
-        case .goalWeight: return goalWeightKg != nil
+        case .goalWeight: return isGoalWeightConsistent
         case .pace: return true  // pace defaults to .medium so always valid
         case .age: return age != nil
         case .sex: return sex != nil
@@ -123,6 +126,35 @@ final class OnboardingState: Codable {
         case .mealSuggestions: return true
         case .notifications: return true
         case .done: return true
+        }
+    }
+
+    /// True when the goal weight makes sense for the chosen goal direction.
+    /// "Gain weight" with goal == current produced a 0-kg/week projection and
+    /// the misleading "Maintain · Balanced" pace card; we now block Continue
+    /// until the user actually picks a target in the right direction.
+    var isGoalWeightConsistent: Bool {
+        guard let goal, let cur = currentWeightKg, let target = goalWeightKg else {
+            return goalWeightKg != nil
+        }
+        switch goal.direction {
+        case .up:   return target > cur + 0.4   // 0.4kg slack to absorb slider step
+        case .down: return target < cur - 0.4
+        case .flat: return true
+        }
+    }
+
+    /// Inline copy shown on the goal-weight screen when the slider is in a
+    /// direction that contradicts the chosen goal.
+    var goalWeightHint: String? {
+        guard let goal, let cur = currentWeightKg, let target = goalWeightKg else { return nil }
+        switch goal.direction {
+        case .up where target <= cur + 0.4:
+            return "Pick a target above your current weight."
+        case .down where target >= cur - 0.4:
+            return "Pick a target below your current weight."
+        default:
+            return nil
         }
     }
 

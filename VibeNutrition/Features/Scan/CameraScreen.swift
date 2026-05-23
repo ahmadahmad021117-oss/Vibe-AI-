@@ -17,12 +17,20 @@ struct CameraScreen: View {
             } else if camera.isReady {
                 CameraPreview(session: camera.session)
                     .ignoresSafeArea()
-                    .overlay(alignment: .top) { topBar }
                     .overlay(alignment: .bottom) { bottomControls }
             } else {
-                ProgressView().tint(Theme.Palette.accent)
+                VStack(spacing: Theme.Spacing.sm) {
+                    ProgressView().tint(Theme.Palette.accent)
+                    Text("Starting camera…")
+                        .font(Theme.Typo.caption)
+                        .foregroundStyle(Theme.Palette.textMuted)
+                }
             }
         }
+        // The close button must be reachable in every state — loading, denied,
+        // and ready. Previously it was only mounted when `isReady`, which left
+        // users trapped if the camera stalled on startup.
+        .overlay(alignment: .top) { topBar }
         .task { await camera.configure() }
         .onDisappear { camera.stop() }
         .onChange(of: camera.capturedImageData) { _, data in
