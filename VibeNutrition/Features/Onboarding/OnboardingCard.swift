@@ -15,16 +15,13 @@ struct OnboardingCard<Content: View>: View {
         ZStack {
             Theme.Palette.bg.ignoresSafeArea()
 
-            VStack(spacing: Theme.Spacing.lg) {
+            // Tighter outer spacing (md vs lg) so 6-option questions like
+            // Goal / Dietary fit on one screen.
+            VStack(spacing: Theme.Spacing.md) {
                 topBar
 
-                VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+                VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                     Text(title)
-                        // h1 (32pt) was producing 3–4 line wraps on long
-                        // questions ("How quickly do you want to reach your
-                        // goal?"). h2 (24pt) keeps the heading strong without
-                        // dominating the screen; minimumScaleFactor catches
-                        // the edge cases without re-flowing the layout.
                         .font(Theme.Typo.h2)
                         .foregroundStyle(Theme.Palette.text)
                         .multilineTextAlignment(.leading)
@@ -41,15 +38,13 @@ struct OnboardingCard<Content: View>: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, Theme.Spacing.lg)
 
-                // Cards / sliders / charts use a 16 pt inset — the iOS
-                // standard for compact content. Less than this clipped the
-                // card corners against the iPhone's rounded display corners
-                // on real hardware (looked cropped at the top-right / bottom-
-                // right); more than this felt like wasted space against the
-                // new colored chips.
+                // 4pt horizontal inset — the cards extend to the screen
+                // edges (matching the MainFocus look the user signed off on),
+                // and since the outer accent glow is now removed, nothing
+                // bleeds past the screen anymore.
                 content()
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .padding(.horizontal, Theme.Spacing.md)
+                    .padding(.horizontal, Theme.Spacing.xs)
 
                 PrimaryButton(title: "Continue", isEnabled: canAdvance) {
                     onContinue()

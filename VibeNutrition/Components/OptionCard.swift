@@ -48,7 +48,11 @@ struct OptionCard: View {
                         .transition(.scale.combined(with: .opacity))
                 }
             }
-            .padding(Theme.Spacing.md)
+            // Vertical padding is tightened (12 vs 16) so 6-option screens
+            // like Goal / Dietary fit on one screen without the last card
+            // getting cropped behind the Continue button.
+            .padding(.horizontal, Theme.Spacing.md)
+            .padding(.vertical, 12)
             .background(
                 RoundedRectangle(cornerRadius: Theme.Radii.lg, style: .continuous)
                     .fill(isSelected ? Theme.Palette.surfaceHi : Theme.Palette.surface)
@@ -60,10 +64,10 @@ struct OptionCard: View {
                         lineWidth: isSelected ? 2 : 1
                     )
             )
-            // Soft accent glow on selection so the card feels alive instead
-            // of just changing border colour.
-            .shadow(color: isSelected ? Theme.Palette.accent.opacity(0.35) : .clear,
-                    radius: isSelected ? 14 : 0)
+            // No outer shadow: the previous 14pt accent glow bled past the
+            // screen edges on real hardware and read as "side bars." Selection
+            // feedback now comes from the 2pt accent stroke + the slight
+            // scale-up + the chip's own contained inner shadow.
             .scaleEffect(isSelected ? 1.02 : 1)
         }
         .animation(Theme.Motion.spring, value: isSelected)
