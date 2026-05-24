@@ -41,13 +41,15 @@ struct OnboardingCard<Content: View>: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, Theme.Spacing.lg)
 
-                // Cards / sliders / charts inside the content area extend
-                // to the screen edges. Title and Continue keep their inset so
-                // text doesn't hug the bezel — those two stay readable, while
-                // the answer surface fills the phone width.
+                // Cards / sliders / charts use a 16 pt inset — the iOS
+                // standard for compact content. Less than this clipped the
+                // card corners against the iPhone's rounded display corners
+                // on real hardware (looked cropped at the top-right / bottom-
+                // right); more than this felt like wasted space against the
+                // new colored chips.
                 content()
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .padding(.horizontal, Theme.Spacing.xs)
+                    .padding(.horizontal, Theme.Spacing.md)
 
                 PrimaryButton(title: "Continue", isEnabled: canAdvance) {
                     onContinue()
