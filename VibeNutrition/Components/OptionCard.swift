@@ -1,13 +1,19 @@
 import SwiftUI
 
+/// A single answer row used across every onboarding screen.
+///
+/// Visual contract:
+/// - Fixed height of `Onboarding.rowHeight` so every screen lines up.
+/// - 36 × 36 tinted "icon chip" on the left (per-option SF Symbol + tint).
+/// - Title (+ optional one-line subtitle) in the middle.
+/// - Right side: checkmark when selected.
+/// - Selection feedback is contained to the rounded rectangle: a 2 pt accent
+///   stroke and the checkmark. No outer shadow / glow that bleeds past the
+///   card.
 struct OptionCard: View {
     let title: String
     var subtitle: String? = nil
     var systemImage: String? = nil
-    /// When provided, the icon renders inside a colored squircle (iOS
-    /// Settings-style "icon chip") rather than the muted line-icon look. Each
-    /// option on a question screen gets a distinct hue so the row reads as a
-    /// recognisable shape at a glance, not a generic monochrome bullet.
     var tint: Color? = nil
     let isSelected: Bool
     let action: () -> Void
@@ -19,19 +25,15 @@ struct OptionCard: View {
         } label: {
             HStack(spacing: Theme.Spacing.md) {
                 if let systemImage {
-                    iconView(systemImage: systemImage)
+                    iconChip(systemImage: systemImage)
                 }
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 1) {
                     Text(title)
                         .font(Theme.Typo.bodyBold)
                         .foregroundStyle(Theme.Palette.text)
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
                     if let subtitle {
-                        // lineLimit(1) + scale-down keeps "About 0.75 kg /
-                        // week" on a single row even when the checkmark badge
-                        // takes the trailing column. Without it the subtitle
-                        // wrapped to 2 lines and the card height jumped.
                         Text(subtitle)
                             .font(Theme.Typo.caption)
                             .foregroundStyle(Theme.Palette.textMuted)
@@ -45,14 +47,12 @@ struct OptionCard: View {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 22, weight: .semibold))
                         .foregroundStyle(Theme.Palette.accent)
-                        .transition(.scale.combined(with: .opacity))
+                        .transition(.opacity)
                 }
             }
-            // Vertical padding is tightened (12 vs 16) so 6-option screens
-            // like Goal / Dietary fit on one screen without the last card
-            // getting cropped behind the Continue button.
             .padding(.horizontal, Theme.Spacing.md)
-            .padding(.vertical, 12)
+            .frame(height: Onboarding.rowHeight)
+            .frame(maxWidth: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: Theme.Radii.lg, style: .continuous)
                     .fill(isSelected ? Theme.Palette.surfaceHi : Theme.Palette.surface)
@@ -64,12 +64,9 @@ struct OptionCard: View {
                         lineWidth: isSelected ? 2 : 1
                     )
             )
-            // No outer shadow: the previous 14pt accent glow bled past the
-            // screen edges on real hardware and read as "side bars." Selection
-            // feedback now comes from the 2pt accent stroke + the slight
-            // scale-up + the chip's own contained inner shadow.
-            .scaleEffect(isSelected ? 1.02 : 1)
+            .contentShape(RoundedRectangle(cornerRadius: Theme.Radii.lg, style: .continuous))
         }
+        .buttonStyle(.plain)
         .animation(Theme.Motion.spring, value: isSelected)
         .accessibilityLabel(title)
         .accessibilityValue(subtitle ?? "")
@@ -77,42 +74,27 @@ struct OptionCard: View {
     }
 
     @ViewBuilder
-    private func iconView(systemImage: String) -> some View {
-        if let tint {
-            // Tinted squircle badge — gradient fill (slightly darker corner)
-            // adds depth so the chip doesn't read as a flat sticker. Selection
-            // ring matches the chip's own tint, then `OptionCard`'s outer
-            // stroke takes over once selected.
-            ZStack {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [tint, tint.opacity(0.78)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
+    private func iconChip(systemImage: String) -> some View {
+        let fill = tint ?? Theme.Palette.textMuted
+        ZStack {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [fill, fill.opacity(0.78)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
                     )
-                Image(systemName: systemImage)
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(.white)
-            }
-            .frame(width: 36, height: 36)
-            .shadow(color: tint.opacity(isSelected ? 0.55 : 0.25),
-                    radius: isSelected ? 8 : 4, x: 0, y: 2)
-            .scaleEffect(isSelected ? 1.05 : 1)
-        } else {
-            // Untinted fallback (preserves the original look for any caller
-            // that hasn't migrated to the new tint API yet).
+                )
             Image(systemName: systemImage)
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(isSelected ? Theme.Palette.accent : Theme.Palette.textMuted)
-                .frame(width: 32)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(.white)
         }
+        .frame(width: 36, height: 36)
     }
 }
 
 #Preview {
-    VStack(spacing: 12) {
+    VStack(spacing: Onboarding.rowGap) {
         OptionCard(title: "Lose weight",
                    subtitle: "Drop body fat steadily",
                    systemImage: "flame.fill",

@@ -1,16 +1,8 @@
 import SwiftUI
 
-#Preview {
-    DietaryPrefScreen(state: OnboardingState())
-        .preferredColorScheme(.dark)
-}
-
 struct DietaryPrefScreen: View {
     @Bindable var state: OnboardingState
 
-    // Carrot for vegan (was a second leaf) — much easier to tell apart from
-    // vegetarian. Keto reads as fire (fat oxidation) rather than the generic
-    // water-drop it used to use.
     private let style: [DietaryPref: (String, Color)] = [
         .normal:      ("fork.knife",      .gray),
         .highProtein: ("bolt.fill",       .yellow),
@@ -32,21 +24,24 @@ struct DietaryPrefScreen: View {
                 withAnimation(Theme.Motion.spring) { state.advance() }
             }
         ) {
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: Theme.Spacing.sm) {
-                    ForEach(DietaryPref.allCases) { pref in
-                        let s = style[pref]
-                        OptionCard(
-                            title: pref.label,
-                            systemImage: s?.0,
-                            tint: s?.1,
-                            isSelected: state.dietaryPref == pref
-                        ) {
-                            state.dietaryPref = pref
-                        }
+            VStack(spacing: Onboarding.rowGap) {
+                ForEach(DietaryPref.allCases) { pref in
+                    let s = style[pref]
+                    OptionCard(
+                        title: pref.label,
+                        systemImage: s?.0,
+                        tint: s?.1,
+                        isSelected: state.dietaryPref == pref
+                    ) {
+                        state.dietaryPref = pref
                     }
                 }
             }
         }
     }
+}
+
+#Preview {
+    DietaryPrefScreen(state: OnboardingState())
+        .preferredColorScheme(.dark)
 }

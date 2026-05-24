@@ -1,10 +1,5 @@
 import SwiftUI
 
-#Preview {
-    SexScreen(state: OnboardingState())
-        .preferredColorScheme(.dark)
-}
-
 struct SexScreen: View {
     @Bindable var state: OnboardingState
 
@@ -30,7 +25,7 @@ struct SexScreen: View {
                 withAnimation(Theme.Motion.spring) { state.advance() }
             }
         ) {
-            VStack(spacing: Theme.Spacing.sm) {
+            VStack(spacing: Onboarding.rowGap) {
                 ForEach(SexType.allCases) { sex in
                     let s = style[sex]
                     OptionCard(
@@ -46,4 +41,9 @@ struct SexScreen: View {
             }
         }
     }
+}
+
+#Preview {
+    SexScreen(state: OnboardingState())
+        .preferredColorScheme(.dark)
 }

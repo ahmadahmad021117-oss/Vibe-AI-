@@ -1,10 +1,5 @@
 import SwiftUI
 
-#Preview {
-    MealsPerDayScreen(state: OnboardingState())
-        .preferredColorScheme(.dark)
-}
-
 struct MealsPerDayScreen: View {
     @Bindable var state: OnboardingState
     @State private var local: Int = 3
@@ -21,10 +16,10 @@ struct MealsPerDayScreen: View {
                 withAnimation(Theme.Motion.spring) { state.advance() }
             }
         ) {
-            VStack {
-                Spacer()
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
                 NumberStepper(value: $local, range: 2...6, suffix: local == 1 ? "meal" : "meals")
-                Spacer()
+                Spacer(minLength: 0)
             }
         }
         .onAppear {
@@ -33,4 +28,9 @@ struct MealsPerDayScreen: View {
         }
         .onChange(of: local) { _, new in state.mealsPerDay = new }
     }
+}
+
+#Preview {
+    MealsPerDayScreen(state: OnboardingState())
+        .preferredColorScheme(.dark)
 }

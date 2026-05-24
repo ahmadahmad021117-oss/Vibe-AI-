@@ -1,16 +1,8 @@
 import SwiftUI
 
-#Preview {
-    GoalScreen(state: OnboardingState())
-        .preferredColorScheme(.dark)
-}
-
 struct GoalScreen: View {
     @Bindable var state: OnboardingState
 
-    // Each row gets a recognisable shape + colour. The previous monochrome
-    // arrow.circles all read the same at a glance — users were comparing
-    // labels, not icons.
     private let style: [GoalType: (String, Color)] = [
         .loseWeight:    ("flame.fill",                      .orange),
         .gainWeight:    ("chart.line.uptrend.xyaxis",       Color(red: 0.20, green: 0.78, blue: 0.40)),
@@ -32,21 +24,24 @@ struct GoalScreen: View {
                 withAnimation(Theme.Motion.spring) { state.advance() }
             }
         ) {
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: Theme.Spacing.sm) {
-                    ForEach(GoalType.allCases) { goal in
-                        let s = style[goal]
-                        OptionCard(
-                            title: goal.label,
-                            systemImage: s?.0 ?? "circle",
-                            tint: s?.1,
-                            isSelected: state.goal == goal
-                        ) {
-                            state.goal = goal
-                        }
+            VStack(spacing: Onboarding.rowGap) {
+                ForEach(GoalType.allCases) { goal in
+                    let s = style[goal]
+                    OptionCard(
+                        title: goal.label,
+                        systemImage: s?.0 ?? "circle",
+                        tint: s?.1,
+                        isSelected: state.goal == goal
+                    ) {
+                        state.goal = goal
                     }
                 }
             }
         }
     }
+}
+
+#Preview {
+    GoalScreen(state: OnboardingState())
+        .preferredColorScheme(.dark)
 }

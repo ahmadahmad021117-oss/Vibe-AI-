@@ -1,17 +1,12 @@
 import SwiftUI
 
-#Preview {
-    MealSuggestionsScreen(state: OnboardingState())
-        .preferredColorScheme(.dark)
-}
-
 struct MealSuggestionsScreen: View {
     @Bindable var state: OnboardingState
 
     var body: some View {
         OnboardingCard(
             title: "Get meal ideas after each scan?",
-            subtitle: "We'll suggest what to eat next based on your remaining macros.",
+            subtitle: "We'll suggest what to eat next based on remaining macros.",
             progress: state.progress,
             canAdvance: state.canAdvance,
             onBack: { withAnimation(Theme.Motion.spring) { state.goBack() } },
@@ -20,7 +15,7 @@ struct MealSuggestionsScreen: View {
                 withAnimation(Theme.Motion.spring) { state.advance() }
             }
         ) {
-            VStack(spacing: Theme.Spacing.md) {
+            VStack(spacing: Onboarding.rowGap) {
                 OptionCard(
                     title: "Yes, suggest meals",
                     systemImage: "sparkles",
@@ -40,4 +35,9 @@ struct MealSuggestionsScreen: View {
             }
         }
     }
+}
+
+#Preview {
+    MealSuggestionsScreen(state: OnboardingState())
+        .preferredColorScheme(.dark)
 }
