@@ -41,9 +41,13 @@ struct OnboardingCard<Content: View>: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, Theme.Spacing.lg)
 
+                // Cards / sliders / charts inside the content area extend
+                // to the screen edges. Title and Continue keep their inset so
+                // text doesn't hug the bezel — those two stay readable, while
+                // the answer surface fills the phone width.
                 content()
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .padding(.horizontal, Theme.Spacing.lg)
+                    .padding(.horizontal, Theme.Spacing.xs)
 
                 PrimaryButton(title: "Continue", isEnabled: canAdvance) {
                     onContinue()
