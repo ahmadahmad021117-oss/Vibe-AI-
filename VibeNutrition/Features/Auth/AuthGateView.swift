@@ -29,32 +29,44 @@ struct AuthGateView: View {
         ZStack {
             Theme.Palette.bg.ignoresSafeArea()
 
-            VStack(spacing: Theme.Spacing.lg) {
-                Spacer()
-                hero
-                Spacer()
+            // GeometryReader + ScrollView with `minHeight: geo.size.height`
+            // keeps the visual layout identical when the keyboard is closed
+            // (hero stays vertically centered via the Spacers) and lets the
+            // user scroll up to reveal the Continue / Create-account buttons
+            // when the keyboard pushes the form up and would otherwise hide
+            // the controls underneath.
+            GeometryReader { geo in
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: Theme.Spacing.lg) {
+                        Spacer()
+                        hero
+                        Spacer()
 
-                // Primary CTA: Sign in with Apple. Always visible, always dominant.
-                SignInWithAppleButton(
-                    onRequest: configureAppleRequest,
-                    onCompletion: handleAppleCompletion
-                )
-                .signInWithAppleButtonStyle(.white)
-                .frame(height: 56)
-                .cornerRadius(Theme.Radii.lg)
+                        // Primary CTA: Sign in with Apple. Always visible, always dominant.
+                        SignInWithAppleButton(
+                            onRequest: configureAppleRequest,
+                            onCompletion: handleAppleCompletion
+                        )
+                        .signInWithAppleButtonStyle(.white)
+                        .frame(height: 56)
+                        .cornerRadius(Theme.Radii.lg)
 
-                if showingEmailForm {
-                    emailForm
-                } else {
-                    revealEmailButton
+                        if showingEmailForm {
+                            emailForm
+                        } else {
+                            revealEmailButton
+                        }
+
+                        legalFooter
+
+                        Spacer().frame(height: Theme.Spacing.sm)
+                    }
+                    .padding(.horizontal, Theme.Spacing.lg)
+                    .frame(minHeight: geo.size.height)
+                    .animation(Theme.Motion.spring, value: showingEmailForm)
                 }
-
-                legalFooter
-
-                Spacer().frame(height: Theme.Spacing.sm)
+                .scrollDismissesKeyboard(.interactively)
             }
-            .padding(.horizontal, Theme.Spacing.lg)
-            .animation(Theme.Motion.spring, value: showingEmailForm)
         }
         .sheet(isPresented: $showingPrivacy) { PrivacyPolicyView() }
         .sheet(isPresented: $showingTerms) { TermsOfServiceView() }
