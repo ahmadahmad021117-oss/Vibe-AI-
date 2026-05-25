@@ -3,13 +3,15 @@ import SwiftUI
 struct GoalScreen: View {
     @Bindable var state: OnboardingState
 
+    // The Goal step is the first screen — keep it scannable with just the
+    // three primary directions. Build muscle / Recomp / Improve health are
+    // captured later (MainFocus screen) and still parse from server data.
+    private let visibleGoals: [GoalType] = [.loseWeight, .gainWeight, .maintain]
+
     private let style: [GoalType: (String, Color)] = [
         .loseWeight:    ("flame.fill",                      .orange),
         .gainWeight:    ("chart.line.uptrend.xyaxis",       Color(red: 0.20, green: 0.78, blue: 0.40)),
-        .buildMuscle:   ("dumbbell.fill",                   .blue),
         .maintain:      ("equal.square.fill",               .teal),
-        .recomp:        ("arrow.triangle.2.circlepath",     .purple),
-        .improveHealth: ("heart.fill",                      .pink),
     ]
 
     var body: some View {
@@ -25,7 +27,7 @@ struct GoalScreen: View {
             }
         ) {
             VStack(spacing: Onboarding.rowGap) {
-                ForEach(GoalType.allCases) { goal in
+                ForEach(visibleGoals) { goal in
                     let s = style[goal]
                     OptionCard(
                         title: goal.label,
