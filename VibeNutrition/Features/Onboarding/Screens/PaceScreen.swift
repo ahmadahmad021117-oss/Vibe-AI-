@@ -1,7 +1,9 @@
 import SwiftUI
 
-/// How quickly the user wants to reach their goal. The projection chart
-/// appears below the option rows so the chosen pace is immediately visible.
+/// How quickly the user wants to reach their goal. Three options, same
+/// shell + row height as every other option screen. The projection chart
+/// lives on the Plan Preview after onboarding — keeping the question
+/// itself clean makes the cadence of the flow consistent.
 struct PaceScreen: View {
     @Bindable var state: OnboardingState
 
@@ -23,33 +25,19 @@ struct PaceScreen: View {
                 withAnimation(Theme.Motion.spring) { state.advance() }
             }
         ) {
-            VStack(spacing: Theme.Spacing.md) {
-                VStack(spacing: Onboarding.rowGap) {
-                    ForEach(Pace.allCases) { pace in
-                        let s = style[pace]
-                        OptionCard(
-                            title: pace.label,
-                            subtitle: pace.subtitle,
-                            systemImage: s?.0,
-                            tint: s?.1,
-                            isSelected: state.pace == pace
-                        ) {
-                            state.pace = pace
-                        }
+            VStack(spacing: Onboarding.rowGap) {
+                ForEach(Pace.allCases) { pace in
+                    let s = style[pace]
+                    OptionCard(
+                        title: pace.label,
+                        subtitle: pace.subtitle,
+                        systemImage: s?.0,
+                        tint: s?.1,
+                        isSelected: state.pace == pace
+                    ) {
+                        state.pace = pace
                     }
                 }
-
-                if let current = state.currentWeightKg, let goal = state.goalWeightKg {
-                    WeightProjectionChart(
-                        currentKg: current,
-                        goalKg: goal,
-                        pace: state.pace,
-                        heightCm: state.heightCm
-                    )
-                    .transition(.opacity)
-                }
-
-                Spacer(minLength: 0)
             }
         }
     }
