@@ -1,17 +1,14 @@
 import SwiftUI
 
-#Preview {
-    HealthSyncScreen(state: OnboardingState())
-        .preferredColorScheme(.dark)
-}
-
+/// Two-option screen — matches the visual family of the other onboarding
+/// screens (no hero illustration, just the two rows).
 struct HealthSyncScreen: View {
     @Bindable var state: OnboardingState
 
     var body: some View {
         OnboardingCard(
             title: "Connect Apple Health?",
-            subtitle: "We'll read steps and active energy to fine-tune your daily calorie target. You can change this any time.",
+            subtitle: "Steps and activity fine-tune your calorie target.",
             progress: state.progress,
             canAdvance: state.canAdvance,
             onBack: { withAnimation(Theme.Motion.spring) { state.goBack() } },
@@ -20,9 +17,7 @@ struct HealthSyncScreen: View {
                 withAnimation(Theme.Motion.spring) { state.advance() }
             }
         ) {
-            VStack(spacing: Theme.Spacing.md) {
-                heroIllustration
-
+            VStack(spacing: Onboarding.rowGap) {
                 OptionCard(
                     title: "Connect Apple Health",
                     subtitle: "Recommended",
@@ -32,9 +27,9 @@ struct HealthSyncScreen: View {
                 ) {
                     state.healthSyncEnabled = true
                     Task {
-                        // Surface the system permission sheet immediately. The user can deny;
-                        // we treat that as "intent recorded, no actual data flow" and the plan
-                        // generator will just skip the step.
+                        // Surface the system permission sheet immediately. A
+                        // denial is treated as "intent recorded" — the plan
+                        // generator just skips the activity step.
                         try? await HealthKitService.shared.requestAuthorization()
                     }
                 }
@@ -50,13 +45,9 @@ struct HealthSyncScreen: View {
             }
         }
     }
+}
 
-    private var heroIllustration: some View {
-        Image(systemName: "heart.text.square.fill")
-            .font(.system(size: 64))
-            .foregroundStyle(Theme.Gradients.accent)
-            .padding(.top, Theme.Spacing.lg)
-            .padding(.bottom, Theme.Spacing.md)
-            .frame(maxWidth: .infinity)
-    }
+#Preview {
+    HealthSyncScreen(state: OnboardingState())
+        .preferredColorScheme(.dark)
 }

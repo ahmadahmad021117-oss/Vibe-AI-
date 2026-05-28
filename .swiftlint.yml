@@ -84,3 +84,5 @@ identifier_name:
     - remaining_carbs_g
     - remaining_fat_g
     - dietary_pref
+    - goal_type
+    - previous_names

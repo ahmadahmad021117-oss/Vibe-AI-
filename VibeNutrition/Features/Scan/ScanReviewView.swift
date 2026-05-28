@@ -6,7 +6,6 @@ struct ScanReviewView: View {
     let initialFood: AnalyzedFood
 
     @State private var items: [FoodItem]
-    @State private var showingSuggestions = false
     @State private var saving = false
     @State private var errorMessage: String?
 
@@ -59,9 +58,6 @@ struct ScanReviewView: View {
         .alert("Save failed", isPresented: .constant(errorMessage != nil), actions: {
             Button("OK") { errorMessage = nil }
         }, message: { Text(errorMessage ?? "") })
-        .sheet(isPresented: $showingSuggestions) {
-            MealSuggestionsSheet(remaining: remainingMacros())
-        }
         .preferredColorScheme(.dark)
     }
 
@@ -151,23 +147,13 @@ struct ScanReviewView: View {
         }
     }
 
-    private func remainingMacros() -> MealSuggestionsSheet.Remaining {
-        let t = totals()
-        return .init(kcal: t.kcal, protein: t.protein, carbs: t.carbs, fat: t.fat)
-    }
-
     private func save() async {
         saving = true
         defer { saving = false }
         do {
             try await FoodLogService.shared.write(items: items, imagePath: imagePath, source: .scan)
             Haptics.success()
-            let profile = try? await ProfileService.shared.fetchCurrent()
-            if profile?.mealSuggestionsEnabled == true {
-                showingSuggestions = true
-            } else {
-                onDone()
-            }
+            onDone()
         } catch {
             Haptics.error()
             errorMessage = error.friendlyMessage

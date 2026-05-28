@@ -1,6 +1,7 @@
 // Supabase Edge Function — suggest-meals
-// Given remaining macros for the day + dietary pref, returns 3 meal ideas matched to the budget.
-// Uses Anthropic Claude with structured tool calling (matches analyze-food).
+// Given remaining macros for the day + dietary pref + goal direction, returns 3
+// meal ideas matched to the budget. Uses Anthropic Claude with structured tool
+// calling (matches analyze-food).
 //
 // Deploy: supabase functions deploy suggest-meals
 // Required secrets: ANTHROPIC_API_KEY (supabase secrets set ANTHROPIC_API_KEY=...)
@@ -15,18 +16,30 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+const GOAL_TYPES = ['lose_weight', 'gain_weight', 'build_muscle', 'maintain', 'recomp', 'improve_health'] as const;
+
 const RequestSchema = z.object({
   remaining_kcal: z.number().int(),
   remaining_protein_g: z.number().nonnegative(),
   remaining_carbs_g: z.number().nonnegative(),
   remaining_fat_g: z.number().nonnegative(),
   dietary_pref: z.enum(['normal', 'high_protein', 'vegetarian', 'vegan', 'halal', 'keto']),
+  // Optional so older clients keep working. When absent, the prompt falls back
+  // to a goal-neutral framing (no calorie-dense bias either way).
+  goal_type: z.enum(GOAL_TYPES).optional(),
+  // Optional list of meal names the client already saw. The model is told to
+  // avoid these so a "refresh" tap yields genuinely new ideas instead of the
+  // same three over and over.
+  previous_names: z.array(z.string().min(1).max(80)).max(30).optional(),
 });
 
 const SuggestionSchema = z.object({
   name: z.string().min(1).max(80),
   description: z.string().min(1).max(200),
-  kcal: z.number().int().nonnegative(),
+  // Floor at 100 kcal: anything below this isn't really a "meal idea" — it's a
+  // sip of water. The 0-kcal results users were seeing came from the per-meal
+  // budget collapsing to ~0 when they were already at target.
+  kcal: z.number().int().min(100),
   protein_g: z.number().nonnegative(),
   carbs_g: z.number().nonnegative(),
   fat_g: z.number().nonnegative(),
@@ -36,14 +49,35 @@ const ResponseSchema = z.object({
   suggestions: z.array(SuggestionSchema).length(3),
 });
 
-const SYSTEM_PROMPT = `You are a nutrition coach. Suggest exactly 3 realistic meal ideas that fit the user's
-remaining daily macros and dietary preference. Keep names short (under 40 chars). One-sentence description.
-Each meal's kcal should be within ±20% of the per-meal target (remaining_kcal / 3).
+const SYSTEM_PROMPT = `You are a nutrition coach. Suggest exactly 3 realistic meal ideas that
+match the user's remaining daily macros, dietary preference, and weight goal.
+
+RULES (all enforced — never break them):
+- Each meal MUST be at least 100 kcal. Never return 0-kcal items. If the user has
+  already met their daily calorie budget (remaining_kcal ≤ 300), suggest LIGHT
+  snacks of 100–250 kcal each that respect their goal.
+- Otherwise, target each meal at roughly remaining_kcal/3, within ±25%.
+- Macros must sum coherently: kcal ≈ protein_g*4 + carbs_g*4 + fat_g*9 (±15%).
+- Names: under 40 chars, specific (e.g. "Greek chicken bowl" not "Healthy bowl").
+- Description: one short sentence with the main ingredients and prep style.
+- VARIETY: avoid repeating any name in the user's "avoid these names" list, and
+  prefer different cuisines/cooking methods across the 3 suggestions in a single
+  response (don't return three variations of the same dish).
+
+GOAL TAILORING:
+- lose_weight: lean, high-volume, low-calorie-density meals. Lean protein,
+  vegetables, sparing healthy fats. Lean toward the lower end of the kcal range.
+- gain_weight / build_muscle: calorie-dense, higher portions. Include healthy
+  fats (nuts, avocado, olive oil), starchy carbs, and full-fat dairy where
+  diet permits. Lean toward the higher end of the kcal range.
+- maintain / recomp / improve_health (or unspecified): balanced plates with
+  moderate portions of protein, carbs, and fats.
+
 Call the suggest_meals tool exactly once with all 3 suggestions.`;
 
 const SUGGEST_MEALS_TOOL = {
   name: 'suggest_meals',
-  description: 'Return 3 meal suggestions that fit the user\'s remaining daily macros and diet.',
+  description: "Return 3 meal suggestions that fit the user's remaining daily macros, diet, and weight goal.",
   input_schema: {
     type: 'object',
     properties: {
@@ -56,7 +90,7 @@ const SUGGEST_MEALS_TOOL = {
           properties: {
             name: { type: 'string', maxLength: 80 },
             description: { type: 'string', maxLength: 200 },
-            kcal: { type: 'integer', minimum: 0 },
+            kcal: { type: 'integer', minimum: 100 },
             protein_g: { type: 'number', minimum: 0 },
             carbs_g: { type: 'number', minimum: 0 },
             fat_g: { type: 'number', minimum: 0 },
@@ -84,7 +118,10 @@ async function suggest(userPrompt: string): Promise<unknown> {
     },
     body: JSON.stringify({
       model: 'claude-haiku-4-5-20251001',  // fast + cheap, plenty for this task
-      max_tokens: 512,
+      max_tokens: 768,
+      // Bumped to 1.0 so refresh actually produces different ideas. The old
+      // default-temperature calls returned near-identical suggestions every time.
+      temperature: 1.0,
       system: [
         { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
       ],
@@ -135,11 +172,23 @@ serve(async (req) => {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    const { remaining_kcal, remaining_protein_g, remaining_carbs_g, remaining_fat_g, dietary_pref } = parsed.data;
+    const {
+      remaining_kcal, remaining_protein_g, remaining_carbs_g, remaining_fat_g,
+      dietary_pref, goal_type, previous_names,
+    } = parsed.data;
+
+    const avoidLine = previous_names && previous_names.length > 0
+      ? `\nAvoid these names (already suggested): ${previous_names.slice(0, 20).join(', ')}.`
+      : '';
+    const goalLine = goal_type ? `Weight goal: ${goal_type}.` : 'Weight goal: unspecified (treat as maintain).';
+    const budgetLine = remaining_kcal <= 300
+      ? 'The user is at or near their daily calorie target — suggest 3 LIGHT snacks of 100–250 kcal each.'
+      : `Target each meal at roughly ${Math.round(remaining_kcal / 3)} kcal (±25%), minimum 100 kcal.`;
 
     const userPrompt =
       `Remaining today: ${remaining_kcal} kcal, ${remaining_protein_g}g protein, ` +
-      `${remaining_carbs_g}g carbs, ${remaining_fat_g}g fat. Diet: ${dietary_pref}.`;
+      `${remaining_carbs_g}g carbs, ${remaining_fat_g}g fat. Diet: ${dietary_pref}. ${goalLine}\n` +
+      budgetLine + avoidLine;
 
     // Retry once on schema-validation failure (rare with tool calling, but cheap insurance).
     let validated: z.infer<typeof ResponseSchema> | null = null;

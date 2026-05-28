@@ -26,7 +26,8 @@ struct PaceSheet: View {
                             .font(Theme.Typo.h2)
                             .foregroundStyle(Theme.Palette.text)
                             .padding(.top, Theme.Spacing.lg)
-                        Text("Changing your pace adjusts your daily calorie target. Pick what you can stick with for several weeks — small steady wins beat fast-then-quit.")
+                        Text("Changing your pace adjusts your daily calorie target. Pick what you " +
+                             "can stick with for several weeks — small steady wins beat fast-then-quit.")
                             .font(Theme.Typo.body)
                             .foregroundStyle(Theme.Palette.textMuted)
 
@@ -72,7 +73,8 @@ struct PaceSheet: View {
             Button("Apply") { Task { await commit(newPace) } }
         } message: { newPace in
             let weekly = String(format: "%.2f", newPace.weeklyKg)
-            Text("This will retarget your daily calories for \(weekly) kg/week. Pace shouldn't be changed often — pick what you can stick with for several weeks.")
+            Text("This will retarget your daily calories for \(weekly) kg/week. " +
+                 "Pace shouldn't be changed often — pick what you can stick with for several weeks.")
         }
     }
 

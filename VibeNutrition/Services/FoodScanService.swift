@@ -5,7 +5,9 @@ enum FoodScanError: LocalizedError {
     case noUser
     case uploadFailed
     case analysisFailed(String)
-    case scanLimitReached
+    /// Active premium entitlement required. Free users land here even on
+    /// their first tap — there's no free daily allowance anymore.
+    case premiumRequired
 
     var errorDescription: String? {
         switch self {
@@ -24,10 +26,10 @@ enum FoodScanError: LocalizedError {
                 comment: "Food scan: server analysis failed; %@ is a short server-supplied detail string"
             )
             return String(format: template, detail)
-        case .scanLimitReached:
-            return String(localized: "food_scan.error.limit_reached",
-                          defaultValue: "Daily free scan limit reached. Upgrade for unlimited scans.",
-                          comment: "Food scan: free-tier daily limit hit")
+        case .premiumRequired:
+            return String(localized: "food_scan.error.premium_required",
+                          defaultValue: "AI scanning is a Premium feature. Start your free trial to continue.",
+                          comment: "Food scan: blocked because the user has no active premium entitlement")
         }
     }
 }
@@ -51,8 +53,9 @@ final class FoodScanService {
     func analyze(imageData: Data) async throws -> (path: String, food: AnalyzedFood) {
         guard let userId = AuthService.shared.userId else { throw FoodScanError.noUser }
 
-        // Free-tier gate.
-        try await EntitlementService.shared.assertCanScan()
+        // Premium gate. Server-side is authoritative; this just skips the
+        // upload round-trip when we already know the user has no entitlement.
+        try EntitlementService.shared.assertCanScan()
 
         let timestamp = Int(Date().timeIntervalSince1970)
         // Lowercase the UUID: Swift's UUID.uuidString is uppercase, but Supabase Storage RLS
@@ -78,16 +81,17 @@ final class FoodScanService {
             return (path, response)
         } catch let err as FunctionsError {
             if case .httpError(let status, let data) = err {
-                // Server-side authoritative quota gate. The client pre-check in
-                // EntitlementService.assertCanScan() can be raced or stale, but
-                // the edge function counts attempts atomically — so this 402
-                // is the real source of truth.
+                // Server-side authoritative entitlement gate. The client
+                // pre-check in EntitlementService.assertCanScan() can race a
+                // just-expired trial, so this 402 is the real source of truth.
                 if status == 402 {
-                    throw FoodScanError.scanLimitReached
+                    throw FoodScanError.premiumRequired
                 }
                 if let body = try? JSONDecoder().decode(AnalyzeError.self, from: data) {
-                    if body.error == "quota_exceeded" {
-                        throw FoodScanError.scanLimitReached
+                    // `quota_exceeded` retained for backwards compat with users
+                    // on a pre-Cal-AI-model server until the deploy lands.
+                    if body.error == "premium_required" || body.error == "quota_exceeded" {
+                        throw FoodScanError.premiumRequired
                     }
                     throw FoodScanError.analysisFailed(body.detail ?? body.error ?? "server error")
                 }

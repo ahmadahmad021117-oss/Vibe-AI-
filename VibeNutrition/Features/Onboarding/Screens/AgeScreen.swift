@@ -1,10 +1,5 @@
 import SwiftUI
 
-#Preview {
-    AgeScreen(state: OnboardingState())
-        .preferredColorScheme(.dark)
-}
-
 struct AgeScreen: View {
     @Bindable var state: OnboardingState
     @State private var local: Int = 22
@@ -21,13 +16,21 @@ struct AgeScreen: View {
                 withAnimation(Theme.Motion.spring) { state.advance() }
             }
         ) {
-            VStack {
-                Spacer()
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
                 NumberStepper(value: $local, range: 13...100, suffix: "years")
-                Spacer()
+                Spacer(minLength: 0)
             }
         }
-        .onAppear { local = state.age ?? 22 }
+        .onAppear {
+            local = state.age ?? 22
+            state.age = local
+        }
         .onChange(of: local) { _, new in state.age = new }
     }
+}
+
+#Preview {
+    AgeScreen(state: OnboardingState())
+        .preferredColorScheme(.dark)
 }

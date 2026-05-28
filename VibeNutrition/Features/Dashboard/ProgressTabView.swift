@@ -1,9 +1,12 @@
 import SwiftUI
 
-/// "Progress" tab. Locked to one screen — no scrolling — so the chart stays put
-/// regardless of finger position. Houses only the long-running plan signals the
-/// user wants at a glance: current weight, goal weight, projection. Pace lives
-/// in Settings now (deliberate friction: changing it adjusts the calorie target).
+/// "Progress" tab. Scrolls vertically — the page used to be locked to one
+/// screen, but adding the 7-day calorie chart pushed content below the tab bar
+/// on smaller phones. The weight projection's pin drag is scoped to the pin
+/// itself (not the whole chart), so it doesn't conflict with the page scroll.
+/// Houses the long-running plan signals: current/goal weight, projection,
+/// calorie history. Pace lives in Settings now (deliberate friction: changing
+/// it adjusts the calorie target).
 struct ProgressTabView: View {
     @Bindable var vm: DashboardViewModel
 
@@ -15,13 +18,26 @@ struct ProgressTabView: View {
         ZStack {
             Theme.Palette.bg.ignoresSafeArea()
 
-            VStack(alignment: .leading, spacing: Theme.Spacing.md) {
-                weightCard
-                projectionCard
-                Spacer(minLength: 0)
+            // Vertical-only scroll. The `.scrollBounceBehavior(.basedOnSize, axes: .horizontal)`
+            // kills the horizontal rubber-band drift that SwiftUI's ScrollView
+            // still allows even when the axes are locked to `.vertical`.
+            // `containerRelativeFrame(.horizontal)` pins the content width to
+            // the scroll view's width, so nothing can ever exceed the viewport.
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: Theme.Spacing.md) {
+                    weightCard
+                    projectionCard
+                    calorieHistoryCard
+                    // The system tab bar sits over the bottom — pad so the
+                    // calorie chart doesn't end up half-hidden behind it.
+                    Spacer(minLength: 120)
+                }
+                .padding(.horizontal, Theme.Spacing.lg)
+                .padding(.top, Theme.Spacing.md)
+                .containerRelativeFrame(.horizontal)
             }
-            .padding(.horizontal, Theme.Spacing.lg)
-            .padding(.top, Theme.Spacing.md)
+            .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+            .refreshable { await vm.load() }
             .safeAreaInset(edge: .top, spacing: 0) {
                 header
                     .padding(.horizontal, Theme.Spacing.lg)
@@ -175,6 +191,22 @@ struct ProgressTabView: View {
                     heightCm: vm.profile?.heightCm
                 )
             }
+        }
+    }
+
+    // MARK: - Calorie history
+
+    /// Goal-aware 7-day intake chart. Skipped until we have a target — without
+    /// it, "on plan" colouring is meaningless. Empty history is fine to show:
+    /// a row of muted bars at zero communicates "no logs yet, start tracking."
+    @ViewBuilder
+    private var calorieHistoryCard: some View {
+        if let t = vm.target {
+            CalorieWeekChart(
+                history: vm.weeklyKcalHistory,
+                targetKcal: t.kcal,
+                direction: vm.latestGoal?.type.direction
+            )
         }
     }
 

@@ -101,6 +101,50 @@ final class FoodLogService {
         return rows
     }
 
+    /// One day's kcal total, used by the Progress-tab history chart.
+    struct DailyKcal: Hashable, Identifiable {
+        /// Local-calendar start-of-day, so chart bars line up cleanly per day.
+        let date: Date
+        let kcal: Int
+        var id: Date { date }
+    }
+
+    /// Returns `days` entries oldest-to-newest, including days with zero logs.
+    /// We bucket on the *local* calendar day rather than UTC so a meal logged
+    /// at 11pm doesn't slide into the next bar.
+    func fetchDailyKcal(days: Int) async throws -> [DailyKcal] {
+        guard days > 0, let userId = AuthService.shared.userId else { return [] }
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        guard let earliest = cal.date(byAdding: .day, value: -(days - 1), to: today) else { return [] }
+
+        struct Row: Decodable { let kcal: Int; let loggedAt: Date
+            enum CodingKeys: String, CodingKey { case kcal; case loggedAt = "logged_at" }
+        }
+
+        let iso = ISO8601DateFormatter().string(from: earliest)
+        let rows: [Row] = try await SupabaseService.shared
+            .from("food_logs")
+            .select("kcal, logged_at")
+            .eq("user_id", value: userId.uuidString)
+            .gte("logged_at", value: iso)
+            .execute()
+            .value
+
+        // Pre-seed every day with 0 so empty days still render a bar slot.
+        var buckets: [Date: Int] = [:]
+        for offset in 0..<days {
+            if let d = cal.date(byAdding: .day, value: offset, to: earliest) {
+                buckets[cal.startOfDay(for: d)] = 0
+            }
+        }
+        for r in rows {
+            let key = cal.startOfDay(for: r.loggedAt)
+            buckets[key, default: 0] += r.kcal
+        }
+        return buckets.keys.sorted().map { DailyKcal(date: $0, kcal: buckets[$0] ?? 0) }
+    }
+
     func delete(id: UUID) async throws {
         try await SupabaseService.shared.from("food_logs")
             .delete()

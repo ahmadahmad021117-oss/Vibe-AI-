@@ -10,8 +10,6 @@ final class EntitlementService {
     private(set) var tier: EntitlementTier = .free
     private(set) var expiresAt: Date?
 
-    static let freeDailyScanLimit = 3
-
     var isPremium: Bool {
         Self.isPremium(tier: tier, expiresAt: expiresAt, now: Date())
     }
@@ -36,57 +34,44 @@ final class EntitlementService {
                 .single()
                 .execute()
                 .value
-            tier = row?.tier ?? .free
-            expiresAt = row?.expiresAt
+            if let row {
+                tier = row.tier
+                expiresAt = row.expiresAt
+            }
+            // No row yet: keep whatever state we have. The RevenueCat webhook
+            // populates this table asynchronously, so a just-purchased user
+            // may have no row for a few seconds — downgrading them here would
+            // bounce them straight back to the paywall.
         } catch {
-            tier = .free
-            expiresAt = nil
+            // Same reasoning: don't clobber an optimistic premium set from
+            // RevenueCat's customerInfo just because the network blipped.
         }
     }
 
-    /// Soft pre-check used by the UI to short-circuit before uploading an image.
-    /// The authoritative gate is in the analyze-food edge function — a free
-    /// user who somehow gets past this check will still be blocked server-side
-    /// with HTTP 402, which `FoodScanService` surfaces as `.scanLimitReached`.
-    func assertCanScan() async throws {
-        if isPremium { return }
-        let today = try await todayScanCount()
-        if today >= Self.freeDailyScanLimit {
-            throw FoodScanError.scanLimitReached
+    /// Locally apply a premium entitlement learned from RevenueCat's customerInfo,
+    /// without waiting for the Supabase `entitlements` row (which lags behind by
+    /// however long the RC → Supabase webhook takes). The DB row is still the
+    /// long-term source of truth — `refresh()` will reconcile once it appears.
+    func applyLocalPremium(expiresAt: Date?) {
+        tier = .premium
+        self.expiresAt = expiresAt
+    }
+
+    /// Locally drop entitlement (e.g. on sign-out).
+    func clearLocal() {
+        tier = .free
+        expiresAt = nil
+    }
+
+    /// Hard-paywall gate: scanning requires an active premium entitlement (which
+    /// includes the 3-day intro-offer free trial — RevenueCat reports that as
+    /// active premium until the trial expires). The server-side gate in
+    /// analyze-food is the authoritative source of truth; this client check just
+    /// avoids opening the camera / uploading an image when we already know the
+    /// scan would be rejected.
+    func assertCanScan() throws {
+        if !isPremium {
+            throw FoodScanError.premiumRequired
         }
-    }
-
-    /// Today's billable scan attempts (UTC day). Source of truth is
-    /// `scan_attempts` — the same table the server gates against — so the
-    /// client and server always agree on what's left.
-    func todayScanCount() async throws -> Int {
-        guard let userId = AuthService.shared.userId else { return 0 }
-        // Server counts attempts >= start-of-UTC-day, so we must too.
-        var utc = Calendar(identifier: .gregorian)
-        utc.timeZone = TimeZone(identifier: "UTC")!
-        let startOfDay = utc.startOfDay(for: Date())
-        let iso = ISO8601DateFormatter().string(from: startOfDay)
-        let rows: [ScanAttempt] = try await SupabaseService.shared
-            .from("scan_attempts")
-            .select()
-            .eq("user_id", value: userId.uuidString)
-            .in("status", values: ["pending", "success"])
-            .gte("created_at", value: iso)
-            .execute()
-            .value
-        return rows.count
-    }
-}
-
-/// Mirrors the public columns of the `scan_attempts` table.
-private struct ScanAttempt: Decodable {
-    let id: UUID
-    let status: String
-    let createdAt: Date
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case status
-        case createdAt = "created_at"
     }
 }

@@ -1,28 +1,21 @@
 import SwiftUI
 
-#Preview {
-    MainFocusScreen(state: OnboardingState())
-        .preferredColorScheme(.dark)
-}
-
 struct MainFocusScreen: View {
     @Bindable var state: OnboardingState
 
-    // Tints intentionally mirror the GoalScreen palette so a "Gain weight"
-    // user picking "Muscle gain" sees the same blue twice in a row — small
-    // cue that the two questions reinforce each other rather than ask the
-    // same thing.
+    // Tints mirror the GoalScreen palette so the same intent (e.g. muscle)
+    // reads as the same hue across both questions.
     private let style: [MainFocus: (String, Color)] = [
-        .fatLoss:       ("flame.fill",                  .orange),
-        .muscleGain:    ("dumbbell.fill",               .blue),
+        .fatLoss:       ("flame.fill", .orange),
+        .muscleGain:    ("dumbbell.fill", .blue),
         .recomp:        ("arrow.triangle.2.circlepath", .purple),
-        .generalHealth: ("cross.case.fill",             Color(red: 0.20, green: 0.78, blue: 0.40)),
+        .generalHealth: ("cross.case.fill", Color(red: 0.20, green: 0.78, blue: 0.40)),
     ]
 
     var body: some View {
         OnboardingCard(
-            title: "What's your main focus right now?",
-            subtitle: "This shapes how aggressive your calorie target gets.",
+            title: "What's your main focus?",
+            subtitle: "Sets how aggressive your calorie target is.",
             progress: state.progress,
             canAdvance: state.canAdvance,
             onBack: { withAnimation(Theme.Motion.spring) { state.goBack() } },
@@ -31,7 +24,7 @@ struct MainFocusScreen: View {
                 withAnimation(Theme.Motion.spring) { state.advance() }
             }
         ) {
-            VStack(spacing: Theme.Spacing.sm) {
+            VStack(spacing: Onboarding.rowGap) {
                 ForEach(MainFocus.allCases) { focus in
                     let s = style[focus]
                     OptionCard(
@@ -46,4 +39,9 @@ struct MainFocusScreen: View {
             }
         }
     }
+}
+
+#Preview {
+    MainFocusScreen(state: OnboardingState())
+        .preferredColorScheme(.dark)
 }

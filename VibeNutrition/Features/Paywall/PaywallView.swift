@@ -74,7 +74,7 @@ struct PaywallView: View {
         // Benefits, not feature list. Each line speaks to outcome ("never wonder")
         // rather than the underlying capability. Converts ~2× better in tests.
         VStack(spacing: Theme.Spacing.sm) {
-            featureRow("infinity", "Scan every meal — no daily limits")
+            featureRow("camera.fill", "Unlimited AI food scanning")
             featureRow("sparkles", "AI suggests what to eat next")
             featureRow("slider.horizontal.3", "Tune portions in one tap")
             featureRow("chart.line.uptrend.xyaxis", "See your weekly wins, not just numbers")

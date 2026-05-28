@@ -189,6 +189,11 @@ final class OnboardingState: Codable {
             let data = UserDefaults.standard.data(forKey: storeKey),
             let restored = try? JSONDecoder().decode(OnboardingState.self, from: data)
         else { return OnboardingState() }
+        // Defensive guard: if persisted state somehow lands on `.done`
+        // (the terminal step), the coordinator would render EmptyView with
+        // no signal to re-fire onComplete — a black screen with no escape.
+        // Start the next session fresh instead.
+        if restored.step == .done { return OnboardingState() }
         return restored
     }
 

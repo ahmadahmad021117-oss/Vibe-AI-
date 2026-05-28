@@ -91,6 +91,33 @@ const RECORD_MEAL_TOOL = {
   cache_control: { type: 'ephemeral' },
 };
 
+// Ask RevenueCat directly whether this user has an active premium entitlement.
+// Used as a fallback when the `entitlements` table says they don't — which
+// happens during the window between a successful purchase and the RC → Supabase
+// webhook landing (or forever, if the webhook isn't configured for this env).
+// Returns the entitlement's expiration date, `null` for lifetime, or `undefined`
+// if no active premium entitlement was found.
+async function fetchRevenueCatPremium(userId: string): Promise<{ expiresAt: string | null } | undefined> {
+  const apiKey = Deno.env.get('REVENUECAT_REST_API_KEY');
+  if (!apiKey) return undefined;
+  const entitlementId = Deno.env.get('REVENUECAT_PREMIUM_ID') ?? 'premium';
+
+  try {
+    const res = await fetch(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(userId)}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    if (!res.ok) return undefined;
+    const body = await res.json();
+    const ent = body?.subscriber?.entitlements?.[entitlementId];
+    if (!ent) return undefined;
+    const expiresAt: string | null = ent.expires_date ?? null;
+    if (expiresAt && Date.parse(expiresAt) <= Date.now()) return undefined;
+    return { expiresAt };
+  } catch {
+    return undefined;
+  }
+}
+
 async function analyze(imageURL: string): Promise<unknown> {
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
   if (!apiKey) {
@@ -185,39 +212,68 @@ serve(async (req) => {
     }
 
     // ---------------------------------------------------------------
-    // Quota gate: atomic check-and-record in the DB. This runs BEFORE
-    // we sign the URL or call Anthropic, so a free user who's exhausted
-    // their daily allowance can't burn paid AI calls by tapping
-    // "Retake" — the count is incremented the moment we authorise.
+    // Premium gate. Scanning is a paid feature — there's no free daily
+    // allowance. The 3-day intro-offer free trial counts as active premium
+    // (RevenueCat marks the entitlement active for the trial window).
+    //
+    // We still use `check_and_record_scan` with `p_daily_limit: 0` so the
+    // attempt row is recorded atomically before we sign the URL or call
+    // Anthropic — that gives us per-scan audit history and prevents a
+    // "Retake" loop from burning paid AI calls on a half-broken upload.
     // ---------------------------------------------------------------
-    const FREE_DAILY_SCAN_LIMIT = 3;
     const adminClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    const { data: attemptId, error: quotaError } = await adminClient.rpc(
+    const premiumRequiredResponse = () => new Response(
+      JSON.stringify({
+        error: 'premium_required',
+        detail: 'AI scanning requires an active Premium subscription. Start your free trial to continue.',
+      }),
+      { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+    let { data: attemptId, error: quotaError } = await adminClient.rpc(
       'check_and_record_scan',
-      { p_user_id: user.id, p_daily_limit: FREE_DAILY_SCAN_LIMIT }
+      { p_user_id: user.id, p_daily_limit: 0 }
     );
 
     if (quotaError) {
-      // Postgres SQLSTATE P0001 with message 'quota_exceeded' = user over free daily limit.
       const msg = quotaError.message ?? '';
+      // The RPC still raises 'quota_exceeded' when the free quota is 0 and
+      // the user has no premium row — that's now equivalent to "no premium".
       if (msg.includes('quota_exceeded')) {
+        // Fallback: ask RevenueCat directly. The `entitlements` table is
+        // populated by the RC → Supabase webhook, which can lag behind a
+        // successful purchase (or be unconfigured in dev). If RC confirms
+        // premium, self-heal the table and let the scan through.
+        const rcPremium = await fetchRevenueCatPremium(user.id);
+        if (rcPremium) {
+          await adminClient.from('entitlements').upsert({
+            user_id: user.id,
+            tier: 'premium',
+            expires_at: rcPremium.expiresAt,
+            updated_at: new Date().toISOString(),
+          });
+          const retry = await adminClient.rpc(
+            'check_and_record_scan',
+            { p_user_id: user.id, p_daily_limit: 0 }
+          );
+          if (!retry.error) {
+            attemptId = retry.data;
+          } else {
+            return premiumRequiredResponse();
+          }
+        } else {
+          return premiumRequiredResponse();
+        }
+      } else {
         return new Response(
-          JSON.stringify({
-            error: 'quota_exceeded',
-            detail: 'Daily free scan limit reached. Upgrade for unlimited scans.',
-            daily_limit: FREE_DAILY_SCAN_LIMIT,
-          }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: 'quota_check_failed', detail: msg }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      return new Response(
-        JSON.stringify({ error: 'quota_check_failed', detail: msg }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
     }
 
     // Helper: finalise the attempt status so the row doesn't sit in 'pending' forever.
