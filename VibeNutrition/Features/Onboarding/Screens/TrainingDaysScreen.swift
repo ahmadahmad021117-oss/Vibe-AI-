@@ -7,7 +7,7 @@ struct TrainingDaysScreen: View {
     var body: some View {
         OnboardingCard(
             title: "How many days a week do you train?",
-            subtitle: "Strength, cardio, sports — anything intentional.",
+            subtitle: "Strength, cardio, sports — any intentional workout.",
             progress: state.progress,
             canAdvance: state.canAdvance,
             onBack: { withAnimation(Theme.Motion.spring) { state.goBack() } },

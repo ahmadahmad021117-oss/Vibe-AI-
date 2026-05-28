@@ -4,12 +4,12 @@ struct DietaryPrefScreen: View {
     @Bindable var state: OnboardingState
 
     private let style: [DietaryPref: (String, Color)] = [
-        .normal:      ("fork.knife",      .gray),
-        .highProtein: ("bolt.fill",       .yellow),
-        .vegetarian:  ("leaf.fill",       Color(red: 0.20, green: 0.78, blue: 0.40)),
-        .vegan:       ("carrot.fill",     .orange),
+        .normal:      ("fork.knife", .gray),
+        .highProtein: ("bolt.fill", .yellow),
+        .vegetarian:  ("leaf.fill", Color(red: 0.20, green: 0.78, blue: 0.40)),
+        .vegan:       ("carrot.fill", .orange),
         .halal:       ("moon.stars.fill", .indigo),
-        .keto:        ("flame.fill",      .red),
+        .keto:        ("flame.fill", .red),
     ]
 
     var body: some View {

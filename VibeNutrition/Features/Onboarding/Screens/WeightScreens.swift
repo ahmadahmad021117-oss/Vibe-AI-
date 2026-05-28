@@ -29,7 +29,7 @@ struct GoalWeightScreen: View {
     var body: some View {
         OnboardingCard(
             title: "And your goal weight?",
-            subtitle: "Pick a realistic target. You can change this later.",
+            subtitle: "Pick a realistic target — change it any time.",
             progress: state.progress,
             canAdvance: state.canAdvance,
             onBack: { withAnimation(Theme.Motion.spring) { state.goBack() } },
@@ -60,9 +60,11 @@ private struct WeightEntry: View {
     @State private var displayValue: Double = 70
 
     var body: some View {
+        // Top-aligned: the previous Spacer-Spacer centering pushed the number
+        // halfway down the content area, leaving a big gap under the title.
+        // Now the unit toggle and number sit just under the title; the bottom
+        // Spacer still keeps everything off the Continue button.
         VStack(spacing: Theme.Spacing.lg) {
-            Spacer(minLength: 0)
-
             unitToggle
                 .frame(maxWidth: 220)
 

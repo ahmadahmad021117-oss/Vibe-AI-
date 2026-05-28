@@ -5,7 +5,9 @@ struct DashboardView: View {
     @Bindable var vm: DashboardViewModel
 
     @State private var network = NetworkStatus.shared
+    @State private var entitlements = EntitlementService.shared
     @State private var showingScan = false
+    @State private var showingPaywall = false
     @State private var showingManualEntry = false
     @State private var showingProfile = false
     @State private var showingWeekly = false
@@ -22,6 +24,10 @@ struct DashboardView: View {
                     nutrientPager
                     actionsRow
                         .padding(.horizontal, Theme.Spacing.lg)
+                    if vm.profile?.mealSuggestionsEnabled ?? true {
+                        mealIdeasSection
+                            .padding(.horizontal, Theme.Spacing.lg)
+                    }
                     todaySection
                         .padding(.horizontal, Theme.Spacing.lg)
                     // Tab bar is ~83pt + safe-area inset. 80pt left part of the
@@ -50,6 +56,17 @@ struct DashboardView: View {
                 showingScan = false
                 Task { await vm.load() }
             }
+        }
+        .fullScreenCover(isPresented: $showingPaywall) {
+            PaywallView(
+                onUnlocked: {
+                    showingPaywall = false
+                    // Fall through to the camera on a successful purchase —
+                    // matches the "tap once, get scanning" intent.
+                    showingScan = true
+                },
+                onSkip: { showingPaywall = false }
+            )
         }
         .sheet(isPresented: $showingManualEntry) {
             ManualEntrySheet(onSaved: {
@@ -149,34 +166,81 @@ struct DashboardView: View {
             ZStack {
                 Circle()
                     .stroke(Theme.Palette.surface, lineWidth: 18)
+                // Base ring (0 → 1.0). When over target this is the warning
+                // band — the *excess* is then drawn on top in a brighter
+                // danger stroke so the overflow is unmistakable instead of
+                // collapsing into a fully-wrapped accent ring.
                 Circle()
                     .trim(from: 0, to: min(1, vm.kcalProgress))
-                    .stroke(Theme.Gradients.accent, style: StrokeStyle(lineWidth: 18, lineCap: .round))
+                    .stroke(ringBaseStroke, style: StrokeStyle(lineWidth: 18, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                     .animation(Theme.Motion.spring, value: vm.kcalProgress)
-                VStack(spacing: 0) {
-                    Text(vm.kcalRemaining.grouped)
-                        .font(Theme.Typo.numeralXL)
-                        .foregroundStyle(Theme.Palette.text)
-                        .contentTransition(.numericText(value: Double(vm.kcalRemaining)))
-                    Text("kcal left")
-                        .font(Theme.Typo.body)
-                        .foregroundStyle(Theme.Palette.textMuted)
-                    if let t = vm.target {
-                        Text("of \(t.kcal.grouped)")
-                            .font(Theme.Typo.caption)
-                            .foregroundStyle(Theme.Palette.textDim)
-                    }
+                if vm.isOverTarget {
+                    Circle()
+                        .trim(from: 0, to: min(0.5, max(0, vm.kcalProgress - 1)))
+                        .stroke(Theme.Palette.danger,
+                                style: StrokeStyle(lineWidth: 18, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .animation(Theme.Motion.spring, value: vm.kcalProgress)
                 }
+                ringCenterLabel
             }
             .frame(width: 240, height: 240)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Calories remaining")
+            .accessibilityLabel(vm.isOverTarget ? "Calories over target" : "Calories remaining")
             .accessibilityValue(ringAccessibilityValue)
         }
     }
 
+    /// Either an accent gradient (under target) or a flat warning fill (over).
+    /// We use a flat color in the over state so the excess danger stroke
+    /// drawn on top is visually distinct.
+    private var ringBaseStroke: AnyShapeStyle {
+        vm.isOverTarget
+            ? AnyShapeStyle(Theme.Palette.warning)
+            : AnyShapeStyle(Theme.Gradients.accent)
+    }
+
+    @ViewBuilder
+    private var ringCenterLabel: some View {
+        if vm.isOverTarget {
+            VStack(spacing: 0) {
+                Text(vm.kcalOver.grouped)
+                    .font(Theme.Typo.numeralXL)
+                    .foregroundStyle(Theme.Palette.danger)
+                    .contentTransition(.numericText(value: Double(vm.kcalOver)))
+                Text("kcal over")
+                    .font(Theme.Typo.body)
+                    .foregroundStyle(Theme.Palette.danger)
+                if let t = vm.target {
+                    Text("\(vm.kcalConsumed.grouped) of \(t.kcal.grouped)")
+                        .font(Theme.Typo.caption)
+                        .foregroundStyle(Theme.Palette.textDim)
+                }
+            }
+        } else {
+            VStack(spacing: 0) {
+                Text(vm.kcalRemaining.grouped)
+                    .font(Theme.Typo.numeralXL)
+                    .foregroundStyle(Theme.Palette.text)
+                    .contentTransition(.numericText(value: Double(vm.kcalRemaining)))
+                Text("kcal left")
+                    .font(Theme.Typo.body)
+                    .foregroundStyle(Theme.Palette.textMuted)
+                if let t = vm.target {
+                    Text("of \(t.kcal.grouped)")
+                        .font(Theme.Typo.caption)
+                        .foregroundStyle(Theme.Palette.textDim)
+                }
+            }
+        }
+    }
+
     private var ringAccessibilityValue: String {
+        if vm.isOverTarget {
+            guard let t = vm.target else { return "\(vm.kcalOver) kilocalories over" }
+            return "\(vm.kcalOver) kilocalories over your \(t.kcal) target"
+        }
         guard let t = vm.target else { return "\(vm.kcalRemaining) kilocalories left" }
         return "\(vm.kcalRemaining) of \(t.kcal) kilocalories left"
     }
@@ -324,7 +388,14 @@ struct DashboardView: View {
     private var actionsRow: some View {
         HStack(spacing: Theme.Spacing.sm) {
             actionTile(icon: "camera.fill", title: "Scan") {
-                showingScan = true
+                // Cal-AI-style hard paywall: scanning requires active premium
+                // (which the 3-day intro-offer trial counts as). Non-premium
+                // users see the paywall before the camera, not after.
+                if entitlements.isPremium {
+                    showingScan = true
+                } else {
+                    showingPaywall = true
+                }
             }
             actionTile(icon: "plus.circle.fill", title: "Manual") {
                 showingManualEntry = true
@@ -349,6 +420,23 @@ struct DashboardView: View {
             .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))
         }
         .accessibilityLabel(title)
+    }
+
+    /// Inline meal-ideas row — fetched once when Home appears, with a refresh button.
+    /// Suggestions stay until the user taps refresh; we don't re-hit the function on
+    /// every log change because the daily quota for `suggest-meals` is not free.
+    @ViewBuilder
+    private var mealIdeasSection: some View {
+        if vm.target != nil {
+            MealIdeasCard(
+                remainingKcal: vm.kcalRemaining,
+                remainingProtein: vm.proteinRemaining,
+                remainingCarbs: vm.carbsRemaining,
+                remainingFat: vm.fatRemaining,
+                dietaryPref: vm.profile?.dietaryPref ?? .normal,
+                goalType: vm.latestGoal?.type
+            )
+        }
     }
 
     private var todaySection: some View {
@@ -441,6 +529,13 @@ private struct LogRow: View {
     let log: FoodLog
     let onDelete: () -> Void
 
+    /// Drives the confirmation dialog. The row was previously using
+    /// `.swipeActions`, which is silently inert outside of a `List` — so until
+    /// now there was no working way for the user to delete a wrongly-scanned
+    /// meal. Confirm-before-delete because the action hits Supabase and isn't
+    /// undoable from the UI.
+    @State private var confirming = false
+
     var body: some View {
         HStack(spacing: Theme.Spacing.md) {
             Image(systemName: log.source == .scan ? "camera.fill" : "pencil")
@@ -460,16 +555,38 @@ private struct LogRow: View {
             Text("\(log.kcal) kcal")
                 .font(Theme.Typo.bodyBold)
                 .foregroundStyle(Theme.Palette.text)
+            deleteButton
         }
         .padding(Theme.Spacing.md)
         .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))
-        .swipeActions {
-            Button(role: .destructive) {
+        .confirmationDialog(
+            "Delete this meal?",
+            isPresented: $confirming,
+            titleVisibility: .visible
+        ) {
+            Button("Delete \(title)", role: .destructive) {
+                Haptics.tapMedium()
                 onDelete()
-            } label: {
-                Label("Delete", systemImage: "trash")
             }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This removes \(log.kcal) kcal from today. You can't undo this.")
         }
+    }
+
+    private var deleteButton: some View {
+        Button {
+            Haptics.tapLight()
+            confirming = true
+        } label: {
+            Image(systemName: "trash")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Theme.Palette.danger)
+                .frame(width: 32, height: 32)
+                .background(Theme.Palette.surfaceHi, in: Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Delete \(title)")
     }
 
     private var title: String {

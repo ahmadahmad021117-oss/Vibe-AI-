@@ -89,7 +89,11 @@ struct OnboardingCard<Content: View>: View {
             Text(subtitle ?? " ")
                 .font(Theme.Typo.body)
                 .foregroundStyle(Theme.Palette.textMuted)
-                .lineLimit(1)
+                // Allow a second line for the few subtitles that don't fit in
+                // 345pt on a 393pt device. fixedSize lets the block grow vertically
+                // instead of truncating with an ellipsis.
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
                 .opacity(subtitle == nil ? 0 : 1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -29,6 +29,7 @@ final class PurchaseService {
         do {
             let result = try await Purchases.shared.logIn(userId.uuidString)
             self.customerInfo = result.customerInfo
+            applyEntitlement(from: result.customerInfo)
         } catch {
             self.error = error.friendlyMessage
         }
@@ -38,6 +39,7 @@ final class PurchaseService {
         do {
             _ = try await Purchases.shared.logOut()
             self.customerInfo = nil
+            EntitlementService.shared.clearLocal()
         } catch {
             self.error = error.friendlyMessage
         }
@@ -57,7 +59,7 @@ final class PurchaseService {
         do {
             let result = try await Purchases.shared.purchase(package: package)
             self.customerInfo = result.customerInfo
-            await EntitlementService.shared.refresh()
+            applyEntitlement(from: result.customerInfo)
             return result.customerInfo.entitlements[Self.premiumEntitlementID]?.isActive == true
         } catch {
             self.error = error.friendlyMessage
@@ -69,11 +71,21 @@ final class PurchaseService {
         do {
             let info = try await Purchases.shared.restorePurchases()
             self.customerInfo = info
-            await EntitlementService.shared.refresh()
+            applyEntitlement(from: info)
             return info.entitlements[Self.premiumEntitlementID]?.isActive == true
         } catch {
             self.error = error.friendlyMessage
             return false
+        }
+    }
+
+    /// Mirror RevenueCat's active entitlement into our local EntitlementService
+    /// so the UI and pre-scan gate don't have to wait for the RC → Supabase
+    /// webhook to propagate.
+    fileprivate func applyEntitlement(from info: CustomerInfo) {
+        let entitlement = info.entitlements[Self.premiumEntitlementID]
+        if entitlement?.isActive == true {
+            EntitlementService.shared.applyLocalPremium(expiresAt: entitlement?.expirationDate)
         }
     }
 }
@@ -92,6 +104,6 @@ private final class PurchasesDelegateBridge: NSObject, PurchasesDelegate {
 extension PurchaseService {
     fileprivate func applyCustomerInfo(_ info: CustomerInfo) {
         self.customerInfo = info
-        Task { await EntitlementService.shared.refresh() }
+        applyEntitlement(from: info)
     }
 }

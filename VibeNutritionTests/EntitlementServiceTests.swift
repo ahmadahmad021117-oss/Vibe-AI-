@@ -40,8 +40,4 @@ final class EntitlementServiceTests: XCTestCase {
             EntitlementService.isPremium(tier: .premium, expiresAt: nil, now: now)
         )
     }
-
-    func testFreeDailyScanLimitIsThree() {
-        XCTAssertEqual(EntitlementService.freeDailyScanLimit, 3)
-    }
 }

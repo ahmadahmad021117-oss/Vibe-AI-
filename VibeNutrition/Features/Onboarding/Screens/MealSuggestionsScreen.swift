@@ -6,7 +6,7 @@ struct MealSuggestionsScreen: View {
     var body: some View {
         OnboardingCard(
             title: "Get meal ideas after each scan?",
-            subtitle: "We'll suggest what to eat next based on remaining macros.",
+            subtitle: "Meal ideas based on macros you have left.",
             progress: state.progress,
             canAdvance: state.canAdvance,
             onBack: { withAnimation(Theme.Motion.spring) { state.goBack() } },

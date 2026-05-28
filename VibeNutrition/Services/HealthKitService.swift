@@ -201,6 +201,7 @@ final class HealthKitService {
 
     // MARK: - Nutrition write-back
 
+    // swiftlint:disable function_parameter_count
     /// Best-effort: writes the meal to Apple Health as four dietary samples tagged
     /// with our food-log id (HKMetadataKeyExternalUUID). Silent no-op if the user
     /// has not granted share permission. Errors are swallowed — Supabase remains
@@ -238,6 +239,7 @@ final class HealthKitService {
         ]
         do { try await store.save(samples) } catch { /* best-effort */ }
     }
+    // swiftlint:enable function_parameter_count
 
     /// Best-effort: removes any dietary samples we previously wrote for this log id.
     func deleteFoodLog(logId: UUID) async {

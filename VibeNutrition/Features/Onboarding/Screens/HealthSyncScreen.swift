@@ -8,7 +8,7 @@ struct HealthSyncScreen: View {
     var body: some View {
         OnboardingCard(
             title: "Connect Apple Health?",
-            subtitle: "Steps + active energy fine-tune your daily calorie target.",
+            subtitle: "Steps and activity fine-tune your calorie target.",
             progress: state.progress,
             canAdvance: state.canAdvance,
             onBack: { withAnimation(Theme.Motion.spring) { state.goBack() } },

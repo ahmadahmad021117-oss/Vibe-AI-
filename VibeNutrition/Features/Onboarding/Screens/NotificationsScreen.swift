@@ -9,7 +9,7 @@ struct NotificationsScreen: View {
 
     private let style: [NotificationPref: (String, Color)] = [
         .full:      ("bell.badge.fill", .red),
-        .important: ("bell.fill",       .orange),
+        .important: ("bell.fill", .orange),
         .off:       ("bell.slash.fill", .gray),
     ]
 

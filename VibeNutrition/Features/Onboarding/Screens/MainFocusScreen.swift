@@ -6,16 +6,16 @@ struct MainFocusScreen: View {
     // Tints mirror the GoalScreen palette so the same intent (e.g. muscle)
     // reads as the same hue across both questions.
     private let style: [MainFocus: (String, Color)] = [
-        .fatLoss:       ("flame.fill",                  .orange),
-        .muscleGain:    ("dumbbell.fill",               .blue),
+        .fatLoss:       ("flame.fill", .orange),
+        .muscleGain:    ("dumbbell.fill", .blue),
         .recomp:        ("arrow.triangle.2.circlepath", .purple),
-        .generalHealth: ("cross.case.fill",             Color(red: 0.20, green: 0.78, blue: 0.40)),
+        .generalHealth: ("cross.case.fill", Color(red: 0.20, green: 0.78, blue: 0.40)),
     ]
 
     var body: some View {
         OnboardingCard(
             title: "What's your main focus?",
-            subtitle: "This shapes how aggressive your calorie target gets.",
+            subtitle: "Sets how aggressive your calorie target is.",
             progress: state.progress,
             canAdvance: state.canAdvance,
             onBack: { withAnimation(Theme.Motion.spring) { state.goBack() } },

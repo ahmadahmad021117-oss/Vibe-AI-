@@ -9,14 +9,14 @@ struct PaceScreen: View {
 
     private let style: [Pace: (String, Color)] = [
         .slow:   ("tortoise.fill", Color(red: 0.20, green: 0.78, blue: 0.40)),
-        .medium: ("figure.walk",   .blue),
-        .fast:   ("hare.fill",     .red),
+        .medium: ("figure.walk", .blue),
+        .fast:   ("hare.fill", .red),
     ]
 
     var body: some View {
         OnboardingCard(
             title: "How fast do you want to go?",
-            subtitle: "We'll cap things automatically if a pace is too aggressive.",
+            subtitle: "We'll cap a pace that's too aggressive.",
             progress: state.progress,
             canAdvance: state.canAdvance,
             onBack: { withAnimation(Theme.Motion.spring) { state.goBack() } },

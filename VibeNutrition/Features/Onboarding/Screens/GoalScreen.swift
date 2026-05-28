@@ -9,9 +9,9 @@ struct GoalScreen: View {
     private let visibleGoals: [GoalType] = [.loseWeight, .gainWeight, .maintain]
 
     private let style: [GoalType: (String, Color)] = [
-        .loseWeight:    ("flame.fill",                      .orange),
-        .gainWeight:    ("chart.line.uptrend.xyaxis",       Color(red: 0.20, green: 0.78, blue: 0.40)),
-        .maintain:      ("equal.square.fill",               .teal),
+        .loseWeight:    ("flame.fill", .orange),
+        .gainWeight:    ("chart.line.uptrend.xyaxis", Color(red: 0.20, green: 0.78, blue: 0.40)),
+        .maintain:      ("equal.square.fill", .teal),
     ]
 
     var body: some View {

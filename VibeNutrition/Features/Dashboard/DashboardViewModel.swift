@@ -13,6 +13,9 @@ final class DashboardViewModel {
     private(set) var latestGoal: Goal?
     private(set) var latestWeight: WeightLog?
     var pace: Pace = .medium
+    /// Last 7 days of bucketed kcal totals (oldest → newest). Powers the
+    /// calorie-history chart on the Progress tab.
+    private(set) var weeklyKcalHistory: [FoodLogService.DailyKcal] = []
 
     var kcalConsumed: Int { todayLogs.reduce(0) { $0 + $1.kcal } }
     var proteinConsumed: Double { todayLogs.reduce(0) { $0 + $1.proteinG } }
@@ -23,6 +26,13 @@ final class DashboardViewModel {
     var proteinRemaining: Double { max(0, Double(target?.proteinG ?? 0) - proteinConsumed) }
     var carbsRemaining: Double { max(0, Double(target?.carbsG ?? 0) - carbsConsumed) }
     var fatRemaining: Double { max(0, Double(target?.fatG ?? 0) - fatConsumed) }
+
+    /// Kilocalories above the daily target. Zero when the user is still under.
+    /// Used to drive the "over" state on the home ring instead of silently clamping
+    /// `kcalRemaining` to 0 (which left users staring at "0 kcal left" with no way
+    /// to tell whether they had hit the target exactly or blown past it).
+    var kcalOver: Int { max(0, kcalConsumed - (target?.kcal ?? 0)) }
+    var isOverTarget: Bool { kcalOver > 0 }
 
     var kcalProgress: Double {
         guard let t = target, t.kcal > 0 else { return 0 }
@@ -45,12 +55,14 @@ final class DashboardViewModel {
         do {
             async let targetTask = withRetry { try await TargetService.shared.fetchLatest() }
             async let logsTask = withRetry { try await FoodLogService.shared.fetchToday() }
+            async let weeklyTask = withRetry { try await FoodLogService.shared.fetchDailyKcal(days: 7) }
             async let streakTask = withRetry { try await StreakService.shared.currentStreak() }
             async let profileTask = withRetry { try await ProfileService.shared.fetchCurrent() }
             async let goalTask = withRetry { try await GoalService.shared.fetchLatest() }
             async let weightTask = withRetry { try await WeightLogService.shared.fetchLatest() }
             self.target = try await targetTask
             self.todayLogs = try await logsTask
+            self.weeklyKcalHistory = try await weeklyTask
             self.streak = try await streakTask
             let profile = try await profileTask
             self.profile = profile
