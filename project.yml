@@ -92,10 +92,8 @@ schemes:
         VibeNutrition: all
     run:
       config: Debug
-      storeKitConfiguration: Configuration/Vibe.storekit
     test:
       config: Debug
-      storeKitConfiguration: Configuration/Vibe.storekit
       targets:
         - VibeNutritionTests
     archive:
