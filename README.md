@@ -86,7 +86,6 @@ Then edit `Secrets.plist` and replace the placeholders:
 ```xml
 <key>SUPABASE_URL</key>          <string>https://YOUR.supabase.co</string>
 <key>SUPABASE_ANON_KEY</key>     <string>eyJ...</string>
-<key>GOOGLE_CLIENT_ID</key>      <string>...apps.googleusercontent.com</string>
 <key>REVENUECAT_API_KEY</key>    <string>appl_...</string>
 ```
 

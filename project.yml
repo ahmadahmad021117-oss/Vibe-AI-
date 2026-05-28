@@ -28,9 +28,6 @@ packages:
   Supabase:
     url: https://github.com/supabase/supabase-swift
     from: 2.5.0
-  GoogleSignIn:
-    url: https://github.com/google/GoogleSignIn-iOS
-    from: 7.1.0
   RevenueCat:
     url: https://github.com/RevenueCat/purchases-ios
     from: 5.0.0
@@ -72,10 +69,6 @@ targets:
         com.apple.developer.healthkit: true
     dependencies:
       - package: Supabase
-      - package: GoogleSignIn
-        product: GoogleSignIn
-      - package: GoogleSignIn
-        product: GoogleSignInSwift
       - package: RevenueCat
         product: RevenueCat
     settings:

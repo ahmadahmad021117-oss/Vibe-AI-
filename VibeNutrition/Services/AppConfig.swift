@@ -27,6 +27,5 @@ enum AppConfig {
     }
 
     static var supabaseAnonKey: String { require("SUPABASE_ANON_KEY") }
-    static var googleClientID: String { require("GOOGLE_CLIENT_ID") }
     static var revenueCatAPIKey: String { require("REVENUECAT_API_KEY") }
 }
