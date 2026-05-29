@@ -1,8 +1,10 @@
 import Foundation
 import Observation
 
-/// All onboarding answers + the current step. Persisted locally so a kill resumes mid-flow,
-/// then synced to Supabase via `commit()` when each answer settles.
+/// All onboarding answers + the current step. Persisted locally so a kill resumes mid-flow.
+/// Onboarding runs before sign-in, so `commit()` only reaches Supabase once a user exists
+/// (the services guard on `userId`); RootCoordinator drives the authoritative write after
+/// Apple sign-in.
 @MainActor
 @Observable
 final class OnboardingState: Codable {
@@ -229,11 +231,5 @@ final class OnboardingState: Codable {
         } catch {
             // Surface in UI later; persistence keeps the answers locally.
         }
-    }
-
-    func finish() async {
-        await commit()
-        try? await ProfileService.shared.markOnboardingComplete()
-        Self.clear()
     }
 }

@@ -13,8 +13,18 @@ struct HealthSyncScreen: View {
             canAdvance: state.canAdvance,
             onBack: { withAnimation(Theme.Motion.spring) { state.goBack() } },
             onContinue: {
-                Task { await state.commit() }
-                withAnimation(Theme.Motion.spring) { state.advance() }
+                Task {
+                    // Gate the iOS permission sheet on the user's choice and
+                    // fire it on Continue (not on option-tap) so the prompt
+                    // arrives right after they confirm. "Skip for now" shows
+                    // nothing. A denial is treated as "intent recorded" — the
+                    // plan generator just skips the activity step.
+                    if state.healthSyncEnabled {
+                        try? await HealthKitService.shared.requestAuthorization()
+                    }
+                    await state.commit()
+                    withAnimation(Theme.Motion.spring) { state.advance() }
+                }
             }
         ) {
             VStack(spacing: Onboarding.rowGap) {
@@ -26,12 +36,6 @@ struct HealthSyncScreen: View {
                     isSelected: state.healthSyncEnabled
                 ) {
                     state.healthSyncEnabled = true
-                    Task {
-                        // Surface the system permission sheet immediately. A
-                        // denial is treated as "intent recorded" — the plan
-                        // generator just skips the activity step.
-                        try? await HealthKitService.shared.requestAuthorization()
-                    }
                 }
 
                 OptionCard(
