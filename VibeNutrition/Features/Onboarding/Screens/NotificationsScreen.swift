@@ -35,16 +35,13 @@ struct NotificationsScreen: View {
                     if state.notificationPref != .off {
                         await NotificationService.shared.apply(pref: state.notificationPref)
                     }
-                    // finish() is the LAST thing we do: it commits, marks
-                    // the profile complete, and clears persisted onboarding
-                    // state. Setting step = .done directly (instead of
-                    // calling advance()) avoids re-persisting step = .done
-                    // back into UserDefaults — if a future user signed in
-                    // on the same install, restore() would otherwise load
-                    // step = .done and the OnboardingCoordinator would
-                    // render EmptyView with no `onChange` trigger to
+                    // Onboarding runs before sign-in, so there's no user to
+                    // persist to yet — RootCoordinator writes everything once,
+                    // after Apple sign-in. Set step = .done directly (instead of
+                    // advance()) so we don't persist step = .done into
+                    // UserDefaults: restore() would otherwise load .done and the
+                    // coordinator would render EmptyView with no `onChange` to
                     // escape, producing a black screen.
-                    await state.finish()
                     withAnimation(Theme.Motion.spring) {
                         state.step = .done
                     }

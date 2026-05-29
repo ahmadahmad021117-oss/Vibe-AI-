@@ -55,8 +55,13 @@ final class PlanGenerator {
 
             var avgSteps: Int? = nil
             if healthOn {
+                // Authorization was already requested during onboarding
+                // (HealthSyncScreen) for fresh users, and persists across
+                // launches for returning users — so we only read here. Don't
+                // re-request: that's what made the system sheet pop up on this
+                // loading screen. If permission was denied, averageDailySteps
+                // returns nil and the plan is computed without activity data.
                 stage = .readingHealth
-                try? await HealthKitService.shared.requestAuthorization()
                 avgSteps = await HealthKitService.shared.averageDailySteps()
             }
 

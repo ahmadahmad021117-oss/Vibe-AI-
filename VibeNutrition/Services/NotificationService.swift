@@ -20,12 +20,34 @@ final class NotificationService {
     }
 
     /// Reschedule both notifications based on the user's current pref.
+    /// Requests system permission if not yet determined, so this must only be
+    /// called from an explicit user action (onboarding choice, Settings toggle)
+    /// — never at app launch, or the prompt appears at a random spot.
     func apply(pref: NotificationPref) async {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [dailyReminderID, weeklySummaryID])
 
         guard pref != .off else { return }
         let authorized = await requestAuthorizationIfNeeded()
+        guard authorized else { return }
+
+        if pref == .full {
+            await scheduleDaily(center: center)
+        }
+        await scheduleWeekly(center: center)
+    }
+
+    /// Reschedule notifications for an already-decided user WITHOUT ever
+    /// triggering the system permission prompt. Safe to call at app launch:
+    /// if permission was never granted, it simply does nothing.
+    func rescheduleIfAuthorized(pref: NotificationPref) async {
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: [dailyReminderID, weeklySummaryID])
+
+        guard pref != .off else { return }
+        let settings = await center.notificationSettings()
+        let authorized = settings.authorizationStatus == .authorized
+            || settings.authorizationStatus == .provisional
         guard authorized else { return }
 
         if pref == .full {
