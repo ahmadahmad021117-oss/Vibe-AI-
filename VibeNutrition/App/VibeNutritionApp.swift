@@ -16,6 +16,7 @@ struct VibeNutritionApp: App {
             RootCoordinator()
                 .preferredColorScheme(appTheme.colorScheme)
                 .tint(Theme.Palette.accent)
+                .onOpenURL { DeepLinkRouter.shared.handle($0) }
         }
     }
 }

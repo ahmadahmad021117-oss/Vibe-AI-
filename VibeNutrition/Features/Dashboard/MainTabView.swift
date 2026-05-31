@@ -8,6 +8,7 @@ struct MainTabView: View {
     /// Shared model so saving pace or weight in Progress reflects on Home (ring, targets) instantly.
     @State private var vm = DashboardViewModel()
     @State private var entitlements = EntitlementService.shared
+    @State private var router = DeepLinkRouter.shared
     @State private var selection: Tab = .home
     /// Remembers the last "real" tab so the Scan trigger can restore it after dismissal.
     @State private var lastTab: Tab = .home
@@ -54,20 +55,22 @@ struct MainTabView: View {
         .onChange(of: selection) { _, new in
             if new == .scan {
                 Haptics.tapMedium()
-                // Non-premium users get the paywall here; the camera never
-                // opens for them. Mirrors the gate on the Home actions row
-                // so both entry points behave identically.
-                if entitlements.isPremium {
-                    showingScan = true
-                } else {
-                    showingPaywall = true
-                }
+                openScan()
                 // Restore the previously-active tab so we don't get stuck on an
                 // empty Scan view if the user dismisses the camera or paywall.
                 selection = lastTab
             } else {
                 lastTab = new
             }
+        }
+        // Widget deep link (vibecal://scan). Consume the flag and open the
+        // camera. Also checked on appear to catch a cold launch where the link
+        // arrived before this view existed.
+        .onChange(of: router.pendingScan) { _, pending in
+            if pending { consumeScanLink() }
+        }
+        .onAppear {
+            if router.pendingScan { consumeScanLink() }
         }
         .fullScreenCover(isPresented: $showingScan) {
             ScanFlowView { _ in
@@ -84,6 +87,22 @@ struct MainTabView: View {
                 onSkip: { showingPaywall = false }
             )
         }
+    }
+
+    /// Opens the camera, or the paywall for non-premium users. Single gate used
+    /// by both the center Scan tab and the widget deep link.
+    private func openScan() {
+        if entitlements.isPremium {
+            showingScan = true
+        } else {
+            showingPaywall = true
+        }
+    }
+
+    private func consumeScanLink() {
+        router.pendingScan = false
+        Haptics.tapMedium()
+        openScan()
     }
 }
 

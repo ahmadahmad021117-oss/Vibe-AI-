@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import WidgetKit
 
 @MainActor
 @Observable
@@ -73,15 +74,29 @@ final class DashboardViewModel {
         } catch {
             self.errorMessage = error.friendlyMessage
         }
+        publishWidgetSnapshot()
     }
 
     func delete(log: FoodLog) async {
         do {
             try await FoodLogService.shared.delete(id: log.id)
             todayLogs.removeAll { $0.id == log.id }
+            publishWidgetSnapshot()
         } catch {
             errorMessage = error.friendlyMessage
         }
+    }
+
+    /// Push today's calorie state to the App Group so the home/lock-screen
+    /// widgets can render it, then ask WidgetKit to refresh.
+    private func publishWidgetSnapshot() {
+        let snapshot = CalorieSnapshot(
+            kcalConsumed: kcalConsumed,
+            kcalTarget: target?.kcal ?? 0,
+            day: Calendar.current.startOfDay(for: Date())
+        )
+        SharedStore.writeSnapshot(snapshot)
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     func saveCurrentWeight(_ kg: Double) async {
