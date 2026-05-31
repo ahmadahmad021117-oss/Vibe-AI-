@@ -22,8 +22,6 @@ settings:
 configs:
   Debug: debug
   Release: release
-fileGroups:
-  - Configuration
 packages:
   Supabase:
     url: https://github.com/supabase/supabase-swift
@@ -91,11 +89,6 @@ schemes:
         VibeNutrition: all
     run:
       config: Debug
-      # Debug-only: drives purchases through the local StoreKit config so the
-      # simulator completes trials/buys without an Apple Account or real money.
-      # Release builds (archive, below) have no config attached and use the
-      # live App Store / Sandbox flow.
-      storeKitConfiguration: Configuration/Vibe.storekit
     test:
       config: Debug
       targets:
