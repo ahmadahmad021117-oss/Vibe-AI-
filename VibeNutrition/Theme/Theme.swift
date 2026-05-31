@@ -1,21 +1,25 @@
 import SwiftUI
 
 enum Theme {
+    /// All palette colors are dynamic: they resolve to the `light` hex when the
+    /// active interface style is light and the `dark` hex otherwise. Because the
+    /// resolution happens inside the trait collection, every existing
+    /// `Theme.Palette.*` reference adapts automatically — no call sites change.
     enum Palette {
-        static let bg = Color(hex: 0x0A0A0F)
-        static let bgElevated = Color(hex: 0x13131C)
-        static let surface = Color(hex: 0x1A1A26)
-        static let surfaceHi = Color(hex: 0x22222F)
-        static let border = Color(hex: 0x2A2A38)
-        static let text = Color(hex: 0xF5F5FA)
-        static let textMuted = Color(hex: 0x9AA0B0)
-        static let textDim = Color(hex: 0x6B7080)
-        static let accent = Color(hex: 0x22D3EE)
-        static let accentAlt = Color(hex: 0x34D399)
-        static let accentDeep = Color(hex: 0x0EA5E9)
-        static let danger = Color(hex: 0xF87171)
-        static let warning = Color(hex: 0xFBBF24)
-        static let success = Color(hex: 0x34D399)
+        static let bg = Color(light: 0xF6F7FB, dark: 0x0A0A0F)
+        static let bgElevated = Color(light: 0xFFFFFF, dark: 0x13131C)
+        static let surface = Color(light: 0xFFFFFF, dark: 0x1A1A26)
+        static let surfaceHi = Color(light: 0xEEF0F6, dark: 0x22222F)
+        static let border = Color(light: 0xDFE2EA, dark: 0x2A2A38)
+        static let text = Color(light: 0x0A0A12, dark: 0xF5F5FA)
+        static let textMuted = Color(light: 0x5A6072, dark: 0x9AA0B0)
+        static let textDim = Color(light: 0x9298A6, dark: 0x6B7080)
+        static let accent = Color(light: 0x0EA5E9, dark: 0x22D3EE)
+        static let accentAlt = Color(light: 0x10B981, dark: 0x34D399)
+        static let accentDeep = Color(light: 0x0284C7, dark: 0x0EA5E9)
+        static let danger = Color(light: 0xDC2626, dark: 0xF87171)
+        static let warning = Color(light: 0xD97706, dark: 0xFBBF24)
+        static let success = Color(light: 0x059669, dark: 0x34D399)
     }
 
     enum Gradients {
@@ -77,6 +81,21 @@ extension Color {
         let g = Double((hex >> 8) & 0xFF) / 255
         let b = Double(hex & 0xFF) / 255
         self.init(.sRGB, red: r, green: g, blue: b, opacity: alpha)
+    }
+
+    /// A color that resolves per interface style. The closure runs against the
+    /// rendering view's trait collection, so it tracks `.preferredColorScheme`
+    /// and live system light/dark changes without any observation wiring.
+    init(light: UInt32, dark: UInt32, alpha: Double = 1) {
+        self = Color(uiColor: UIColor { traits in
+            let hex = traits.userInterfaceStyle == .light ? light : dark
+            return UIColor(
+                red: CGFloat((hex >> 16) & 0xFF) / 255,
+                green: CGFloat((hex >> 8) & 0xFF) / 255,
+                blue: CGFloat(hex & 0xFF) / 255,
+                alpha: CGFloat(alpha)
+            )
+        })
     }
 }
 

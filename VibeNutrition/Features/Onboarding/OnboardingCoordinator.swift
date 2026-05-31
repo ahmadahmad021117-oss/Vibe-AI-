@@ -35,7 +35,6 @@ struct OnboardingCoordinator: View {
                 onComplete(state)
             }
         }
-        .preferredColorScheme(.dark)
     }
 }
 

@@ -100,5 +100,4 @@ private func legalContainer<Content: View>(
             }
         }
     }
-    .preferredColorScheme(.dark)
 }

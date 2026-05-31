@@ -58,7 +58,6 @@ struct WeightCheckInSheet: View {
                 weightKg = last.weightKg
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private func save() async {

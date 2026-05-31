@@ -2,6 +2,8 @@ import SwiftUI
 
 @main
 struct VibeNutritionApp: App {
+    @AppStorage(AppTheme.storageKey) private var appTheme: AppTheme = .system
+
     init() {
         // Touch shared singletons so Supabase + auth bootstrap eagerly.
         _ = SupabaseService.shared
@@ -12,7 +14,7 @@ struct VibeNutritionApp: App {
     var body: some Scene {
         WindowGroup {
             RootCoordinator()
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(appTheme.colorScheme)
                 .tint(Theme.Palette.accent)
         }
     }

@@ -40,6 +40,9 @@ struct MealIdeasCard: View {
     /// function so a refresh produces genuinely new ideas instead of the same
     /// three with minor wording tweaks.
     @State private var seenNames: [String] = []
+    /// Tapped suggestion drives the detail sheet (save to registry / log today).
+    @State private var selectedSuggestion: Suggestion?
+    @State private var showingRegistry = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
@@ -47,6 +50,18 @@ struct MealIdeasCard: View {
             content
         }
         .task { if !hasLoaded { await load() } }
+        .sheet(item: $selectedSuggestion) { s in
+            MealIdeaDetailView(
+                name: s.name,
+                description: s.description,
+                kcal: s.kcal,
+                proteinG: s.proteinG,
+                carbsG: s.carbsG,
+                fatG: s.fatG,
+                context: .suggestion
+            )
+        }
+        .sheet(isPresented: $showingRegistry) { SavedMealsView() }
     }
 
     private var header: some View {
@@ -60,8 +75,26 @@ struct MealIdeasCard: View {
                     .foregroundStyle(Theme.Palette.textMuted)
             }
             Spacer()
+            registryButton
             refreshButton
         }
+    }
+
+    private var registryButton: some View {
+        Button {
+            Haptics.tapLight()
+            showingRegistry = true
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(Theme.Palette.surface)
+                    .frame(width: 32, height: 32)
+                Image(systemName: "bookmark")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Theme.Palette.textMuted)
+            }
+        }
+        .accessibilityLabel("Saved meals")
     }
 
     private var refreshButton: some View {
@@ -100,7 +133,13 @@ struct MealIdeasCard: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: Theme.Spacing.sm) {
                     ForEach(suggestions) { s in
-                        suggestionCard(s)
+                        Button {
+                            Haptics.tapLight()
+                            selectedSuggestion = s
+                        } label: {
+                            suggestionCard(s)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -176,11 +215,17 @@ struct MealIdeasCard: View {
                 macroDot("P", value: s.proteinG)
                 macroDot("C", value: s.carbsG)
                 macroDot("F", value: s.fatG)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Theme.Palette.textDim)
             }
         }
         .padding(Theme.Spacing.md)
         .frame(width: 220, height: 150, alignment: .topLeading)
         .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))
+        .accessibilityElement(children: .combine)
+        .accessibilityHint("Opens meal details")
     }
 
     private func macroDot(_ label: String, value: Double) -> some View {

@@ -39,7 +39,6 @@ struct MarketingEmailSheet: View {
             .padding(.top, Theme.Spacing.md)
             .padding(.bottom, Theme.Spacing.lg)
         }
-        .preferredColorScheme(.dark)
     }
 
     private var header: some View {

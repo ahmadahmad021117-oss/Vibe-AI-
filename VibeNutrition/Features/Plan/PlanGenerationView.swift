@@ -60,7 +60,6 @@ struct PlanGenerationView: View {
                 Spacer()
             }
         }
-        .preferredColorScheme(.dark)
         .onAppear {
             withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
                 pulse.toggle()

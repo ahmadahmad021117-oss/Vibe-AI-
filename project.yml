@@ -50,7 +50,6 @@ targets:
           - UIInterfaceOrientationPortrait
         UILaunchScreen:
           UIColorName: LaunchBackground
-        UIUserInterfaceStyle: Dark
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
         NSCameraUsageDescription: VibeCal uses the camera to scan your meals and estimate calories.

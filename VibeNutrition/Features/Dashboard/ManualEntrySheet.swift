@@ -46,7 +46,6 @@ struct ManualEntrySheet: View {
                 .padding(Theme.Spacing.lg)
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private func field(_ label: String, value: Binding<String>,

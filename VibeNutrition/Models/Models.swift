@@ -196,6 +196,28 @@ struct FoodLog: Codable, Identifiable, Hashable {
     }
 }
 
+/// A meal the user kept in their personal registry, saved from a meal idea.
+struct SavedMeal: Codable, Identifiable, Hashable {
+    var id: UUID
+    var userId: UUID
+    var name: String
+    var description: String
+    var kcal: Int
+    var proteinG: Double
+    var carbsG: Double
+    var fatG: Double
+    var createdAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, description, kcal
+        case userId = "user_id"
+        case proteinG = "protein_g"
+        case carbsG = "carbs_g"
+        case fatG = "fat_g"
+        case createdAt = "created_at"
+    }
+}
+
 struct ActivitySync: Codable, Identifiable, Hashable {
     var id: UUID
     var userId: UUID
