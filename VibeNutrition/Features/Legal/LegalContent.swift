@@ -86,8 +86,8 @@ enum LegalContent {
     1. Data we collect
 
     Account & auth
-      • Email address (you provide this when you sign up, or it comes from Apple/Google when
-        you use Sign in with Apple / Sign in with Google).
+      • Email address (you provide this when you sign up, or it comes from Apple when
+        you use Sign in with Apple).
       • Authentication tokens issued by our backend provider (Supabase).
 
     Profile & goals
@@ -146,7 +146,6 @@ enum LegalContent {
         API data policy for paid users).
       • RevenueCat — processes subscription state.
       • Apple — Sign in with Apple, App Store payments, HealthKit (on-device).
-      • Google — only if you use Sign in with Google.
       We do not sell your personal data to anyone.
 
     5. International transfers
