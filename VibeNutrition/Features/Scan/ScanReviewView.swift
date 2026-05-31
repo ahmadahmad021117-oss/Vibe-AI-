@@ -58,7 +58,6 @@ struct ScanReviewView: View {
         .alert("Save failed", isPresented: .constant(errorMessage != nil), actions: {
             Button("OK") { errorMessage = nil }
         }, message: { Text(errorMessage ?? "") })
-        .preferredColorScheme(.dark)
     }
 
     private var header: some View {

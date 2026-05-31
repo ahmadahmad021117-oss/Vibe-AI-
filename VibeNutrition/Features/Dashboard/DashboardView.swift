@@ -78,7 +78,6 @@ struct DashboardView: View {
         .sheet(isPresented: $showingWeekly, onDismiss: { Task { await vm.load() } }) {
             WeeklyProgressView()
         }
-        .preferredColorScheme(.dark)
     }
 
     private var offlineBanner: some View {

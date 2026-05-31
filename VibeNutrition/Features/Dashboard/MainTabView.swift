@@ -84,7 +84,6 @@ struct MainTabView: View {
                 onSkip: { showingPaywall = false }
             )
         }
-        .preferredColorScheme(.dark)
     }
 }
 

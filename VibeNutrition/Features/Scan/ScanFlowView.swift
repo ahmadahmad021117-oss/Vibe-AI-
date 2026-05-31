@@ -97,7 +97,6 @@ private struct AnalyzingView: View {
             }
             .padding(.horizontal, Theme.Spacing.lg)
         }
-        .preferredColorScheme(.dark)
         .task {
             withAnimation(.easeInOut(duration: 0.85).repeatForever(autoreverses: true)) { pulse.toggle() }
             await perform()

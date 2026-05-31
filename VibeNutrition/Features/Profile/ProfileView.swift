@@ -3,6 +3,8 @@ import SwiftUI
 struct ProfileView: View {
     @Environment(\.dismiss) private var dismiss
 
+    @AppStorage(AppTheme.storageKey) private var appTheme: AppTheme = .system
+
     @State private var profile: Profile?
     @State private var notificationPref: NotificationPref = .important
 
@@ -27,6 +29,7 @@ struct ProfileView: View {
                     subscriptionSection
                     planSection
                     notificationsSection
+                    appearanceSection
                     dataSection
                     legalSection
                     dangerSection
@@ -43,7 +46,6 @@ struct ProfileView: View {
             }
         }
         .task { await load() }
-        .preferredColorScheme(.dark)
         .alert("Delete your account?",
                isPresented: $showingDeleteConfirm,
                actions: {
@@ -273,6 +275,47 @@ struct ProfileView: View {
                     divider
                 }
             }
+        }
+    }
+
+    private var appearanceSection: some View {
+        section("Appearance") {
+            ForEach(Array(AppTheme.allCases.enumerated()), id: \.element.id) { idx, theme in
+                Button {
+                    Haptics.select()
+                    appTheme = theme
+                } label: {
+                    HStack(spacing: Theme.Spacing.sm) {
+                        iconBadge(systemName: theme.icon, tint: appearanceTint(theme))
+                        Text(theme.label)
+                            .font(Theme.Typo.body)
+                            .foregroundStyle(Theme.Palette.text)
+                        Spacer()
+                        if appTheme == theme {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundStyle(Theme.Palette.accent)
+                        }
+                    }
+                    .padding(.horizontal, Theme.Spacing.md)
+                    .padding(.vertical, 10)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(theme.label)
+                .accessibilityAddTraits(appTheme == theme ? [.isSelected, .isButton] : .isButton)
+                if idx < AppTheme.allCases.count - 1 {
+                    divider
+                }
+            }
+        }
+    }
+
+    private func appearanceTint(_ theme: AppTheme) -> Color {
+        switch theme {
+        case .system: return .gray
+        case .light:  return .orange
+        case .dark:   return .indigo
         }
     }
 

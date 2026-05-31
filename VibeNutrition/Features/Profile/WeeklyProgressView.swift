@@ -36,7 +36,6 @@ struct WeeklyProgressView: View {
             }
         }
         .task { await load() }
-        .preferredColorScheme(.dark)
     }
 
     private var header: some View {

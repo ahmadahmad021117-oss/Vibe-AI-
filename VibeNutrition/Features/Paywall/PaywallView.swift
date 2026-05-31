@@ -45,7 +45,6 @@ struct PaywallView: View {
         }
         .sheet(isPresented: $showingPrivacy) { PrivacyPolicyView() }
         .sheet(isPresented: $showingTerms) { TermsOfServiceView() }
-        .preferredColorScheme(.dark)
     }
 
     private var hero: some View {

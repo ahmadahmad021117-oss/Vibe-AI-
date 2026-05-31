@@ -45,7 +45,6 @@ struct CameraScreen: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private var topBar: some View {

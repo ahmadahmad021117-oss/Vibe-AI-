@@ -53,6 +53,5 @@ struct EditWeightSheet: View {
                 .padding(.bottom, Theme.Spacing.lg)
             }
         }
-        .preferredColorScheme(.dark)
     }
 }

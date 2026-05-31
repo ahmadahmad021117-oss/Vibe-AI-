@@ -58,7 +58,6 @@ struct PlanPreviewView: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private var header: some View {

@@ -59,7 +59,6 @@ struct PaceSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
         .task { await load() }
         .alert(
             "Change pace?",
