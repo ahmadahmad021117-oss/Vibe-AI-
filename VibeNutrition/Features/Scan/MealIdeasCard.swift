@@ -23,12 +23,28 @@ struct MealIdeasCard: View {
         let proteinG: Double
         let carbsG: Double
         let fatG: Double
+        let ingredients: [MealIngredient]
+        let steps: [String]
 
         enum CodingKeys: String, CodingKey {
-            case name, description, kcal
+            case name, description, kcal, ingredients, steps
             case proteinG = "protein_g"
             case carbsG = "carbs_g"
             case fatG = "fat_g"
+        }
+
+        // Default the recipe arrays to empty so a response from an older
+        // (not-yet-redeployed) function still decodes cleanly.
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            name = try c.decode(String.self, forKey: .name)
+            description = try c.decode(String.self, forKey: .description)
+            kcal = try c.decode(Int.self, forKey: .kcal)
+            proteinG = try c.decode(Double.self, forKey: .proteinG)
+            carbsG = try c.decode(Double.self, forKey: .carbsG)
+            fatG = try c.decode(Double.self, forKey: .fatG)
+            ingredients = try c.decodeIfPresent([MealIngredient].self, forKey: .ingredients) ?? []
+            steps = try c.decodeIfPresent([String].self, forKey: .steps) ?? []
         }
     }
 
@@ -58,6 +74,8 @@ struct MealIdeasCard: View {
                 proteinG: s.proteinG,
                 carbsG: s.carbsG,
                 fatG: s.fatG,
+                ingredients: s.ingredients,
+                steps: s.steps,
                 context: .suggestion
             )
         }

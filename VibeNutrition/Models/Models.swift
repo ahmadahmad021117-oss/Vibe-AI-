@@ -196,6 +196,14 @@ struct FoodLog: Codable, Identifiable, Hashable {
     }
 }
 
+/// One ingredient of a meal idea, sized for a single serving. The portion
+/// calculator scales `quantity` by the chosen number of servings.
+struct MealIngredient: Codable, Hashable {
+    var name: String
+    var quantity: Double
+    var unit: String
+}
+
 /// A meal the user kept in their personal registry, saved from a meal idea.
 struct SavedMeal: Codable, Identifiable, Hashable {
     var id: UUID
@@ -206,6 +214,8 @@ struct SavedMeal: Codable, Identifiable, Hashable {
     var proteinG: Double
     var carbsG: Double
     var fatG: Double
+    var ingredients: [MealIngredient]
+    var steps: [String]
     var createdAt: Date
 
     enum CodingKeys: String, CodingKey {
@@ -214,7 +224,26 @@ struct SavedMeal: Codable, Identifiable, Hashable {
         case proteinG = "protein_g"
         case carbsG = "carbs_g"
         case fatG = "fat_g"
+        case ingredients = "ingredients_json"
+        case steps = "steps_json"
         case createdAt = "created_at"
+    }
+
+    // Custom decode so rows saved before the recipe columns existed (or any
+    // null jsonb) fall back to empty lists instead of failing to decode.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        userId = try c.decode(UUID.self, forKey: .userId)
+        name = try c.decode(String.self, forKey: .name)
+        description = try c.decode(String.self, forKey: .description)
+        kcal = try c.decode(Int.self, forKey: .kcal)
+        proteinG = try c.decode(Double.self, forKey: .proteinG)
+        carbsG = try c.decode(Double.self, forKey: .carbsG)
+        fatG = try c.decode(Double.self, forKey: .fatG)
+        ingredients = try c.decodeIfPresent([MealIngredient].self, forKey: .ingredients) ?? []
+        steps = try c.decodeIfPresent([String].self, forKey: .steps) ?? []
+        createdAt = try c.decode(Date.self, forKey: .createdAt)
     }
 }
 
