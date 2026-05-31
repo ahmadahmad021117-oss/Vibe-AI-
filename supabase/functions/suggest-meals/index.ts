@@ -33,6 +33,14 @@ const RequestSchema = z.object({
   previous_names: z.array(z.string().min(1).max(80)).max(30).optional(),
 });
 
+const IngredientSchema = z.object({
+  name: z.string().min(1).max(80),
+  // Numeric so the client can scale every ingredient by the chosen portion.
+  quantity: z.number().positive(),
+  // Free-form unit (g, ml, tbsp, slice, clove, …) — kept short.
+  unit: z.string().min(1).max(20),
+});
+
 const SuggestionSchema = z.object({
   name: z.string().min(1).max(80),
   description: z.string().min(1).max(200),
@@ -43,6 +51,10 @@ const SuggestionSchema = z.object({
   protein_g: z.number().nonnegative(),
   carbs_g: z.number().nonnegative(),
   fat_g: z.number().nonnegative(),
+  // Ingredients + prep steps describe ONE serving. The client's portion
+  // calculator scales quantities and macros from this single-serving baseline.
+  ingredients: z.array(IngredientSchema).min(2).max(15),
+  steps: z.array(z.string().min(1).max(200)).min(1).max(8),
 });
 
 const ResponseSchema = z.object({
@@ -63,6 +75,11 @@ RULES (all enforced — never break them):
 - VARIETY: avoid repeating any name in the user's "avoid these names" list, and
   prefer different cuisines/cooking methods across the 3 suggestions in a single
   response (don't return three variations of the same dish).
+- INGREDIENTS: list 2–15 ingredients for ONE serving. Each needs a numeric
+  quantity and a short unit (prefer metric: g, ml; otherwise tbsp, tsp, slice,
+  clove, piece, cup). Quantities must be realistic and roughly add up to the
+  meal's stated macros. No "to taste" — use a small number (e.g. 1 g salt).
+- STEPS: 1–8 concise prep steps, imperative voice ("Grill the chicken 6 min").
 
 GOAL TAILORING:
 - lose_weight: lean, high-volume, low-calorie-density meals. Lean protein,
@@ -94,8 +111,30 @@ const SUGGEST_MEALS_TOOL = {
             protein_g: { type: 'number', minimum: 0 },
             carbs_g: { type: 'number', minimum: 0 },
             fat_g: { type: 'number', minimum: 0 },
+            ingredients: {
+              type: 'array',
+              minItems: 2,
+              maxItems: 15,
+              description: 'Ingredients for ONE serving.',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string', maxLength: 80 },
+                  quantity: { type: 'number', minimum: 0 },
+                  unit: { type: 'string', maxLength: 20 },
+                },
+                required: ['name', 'quantity', 'unit'],
+              },
+            },
+            steps: {
+              type: 'array',
+              minItems: 1,
+              maxItems: 8,
+              description: 'Concise prep steps in order.',
+              items: { type: 'string', maxLength: 200 },
+            },
           },
-          required: ['name', 'description', 'kcal', 'protein_g', 'carbs_g', 'fat_g'],
+          required: ['name', 'description', 'kcal', 'protein_g', 'carbs_g', 'fat_g', 'ingredients', 'steps'],
         },
       },
     },
@@ -118,7 +157,9 @@ async function suggest(userPrompt: string): Promise<unknown> {
     },
     body: JSON.stringify({
       model: 'claude-haiku-4-5-20251001',  // fast + cheap, plenty for this task
-      max_tokens: 768,
+      // Raised from 768: 3 meals now each carry an ingredient list + prep steps,
+      // which can run past the old ceiling and truncate the tool call.
+      max_tokens: 2048,
       // Bumped to 1.0 so refresh actually produces different ideas. The old
       // default-temperature calls returned near-identical suggestions every time.
       temperature: 1.0,

@@ -32,9 +32,18 @@ final class SavedMealService {
 
     @discardableResult
     func save(name: String, description: String, kcal: Int,
-              proteinG: Double, carbsG: Double, fatG: Double) async throws -> UUID {
+              proteinG: Double, carbsG: Double, fatG: Double,
+              ingredients: [MealIngredient], steps: [String]) async throws -> UUID {
         guard let userId = AuthService.shared.userId else { throw notSignedIn }
         let id = UUID()
+        let ingredientsJSON: [AnyJSON] = ingredients.map { ing in
+            .object([
+                "name": .string(ing.name),
+                "quantity": .double(ing.quantity),
+                "unit": .string(ing.unit),
+            ])
+        }
+        let stepsJSON: [AnyJSON] = steps.map { .string($0) }
         let payload: [String: AnyJSON] = [
             "id": .string(id.uuidString),
             "user_id": .string(userId.uuidString),
@@ -44,6 +53,8 @@ final class SavedMealService {
             "protein_g": .double(proteinG),
             "carbs_g": .double(carbsG),
             "fat_g": .double(fatG),
+            "ingredients_json": .array(ingredientsJSON),
+            "steps_json": .array(stepsJSON),
         ]
         try await SupabaseService.shared.from("saved_meals").insert(payload).execute()
         return id

@@ -28,6 +28,8 @@ struct SavedMealsView: View {
                 proteinG: meal.proteinG,
                 carbsG: meal.carbsG,
                 fatG: meal.fatG,
+                ingredients: meal.ingredients,
+                steps: meal.steps,
                 context: .saved(id: meal.id)
             )
         }
