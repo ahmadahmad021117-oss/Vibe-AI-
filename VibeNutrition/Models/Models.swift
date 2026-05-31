@@ -13,6 +13,7 @@ struct Profile: Codable, Identifiable, Hashable {
     var mealSuggestionsEnabled: Bool
     var notificationPref: NotificationPref
     var healthSyncEnabled: Bool
+    var waterGoalMl: Int
     var pace: Pace?
     var marketingEmail: String?
     var marketingEmailOptIn: Bool?
@@ -32,6 +33,7 @@ struct Profile: Codable, Identifiable, Hashable {
         case mealSuggestionsEnabled = "meal_suggestions_enabled"
         case notificationPref = "notification_pref"
         case healthSyncEnabled = "health_sync_enabled"
+        case waterGoalMl = "water_goal_ml"
         case marketingEmail = "marketing_email"
         case marketingEmailOptIn = "marketing_email_opt_in"
         case marketingConsentAt = "marketing_consent_at"
@@ -262,6 +264,73 @@ struct ActivitySync: Codable, Identifiable, Hashable {
         case source, steps, date
         case activeKcal = "active_kcal"
         case syncedAt = "synced_at"
+    }
+}
+
+struct WaterLog: Codable, Identifiable, Hashable {
+    var id: UUID
+    var userId: UUID
+    var amountMl: Int
+    var loggedAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case amountMl = "amount_ml"
+        case loggedAt = "logged_at"
+    }
+}
+
+/// Tape-measure check-in. Every metric is optional — the user logs whichever
+/// ones they track, and old rows decode fine when a column was never filled.
+struct BodyMeasurement: Codable, Identifiable, Hashable {
+    var id: UUID
+    var userId: UUID
+    var waistCm: Double?
+    var hipCm: Double?
+    var chestCm: Double?
+    var armCm: Double?
+    var thighCm: Double?
+    var bodyFatPct: Double?
+    var notes: String?
+    var measuredAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id, notes
+        case userId = "user_id"
+        case waistCm = "waist_cm"
+        case hipCm = "hip_cm"
+        case chestCm = "chest_cm"
+        case armCm = "arm_cm"
+        case thighCm = "thigh_cm"
+        case bodyFatPct = "body_fat_pct"
+        case measuredAt = "measured_at"
+    }
+
+    /// True when no metric was recorded — used to keep empty rows out of the UI.
+    var isEmpty: Bool {
+        waistCm == nil && hipCm == nil && chestCm == nil
+            && armCm == nil && thighCm == nil && bodyFatPct == nil
+    }
+}
+
+/// Metadata for a progress photo. The pixels live in the `progress-photos`
+/// storage bucket at `image_path`; the app fetches a short-lived signed URL to
+/// display them.
+struct ProgressPhoto: Codable, Identifiable, Hashable {
+    var id: UUID
+    var userId: UUID
+    var imagePath: String
+    var weightKg: Double?
+    var notes: String?
+    var takenAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id, notes
+        case userId = "user_id"
+        case imagePath = "image_path"
+        case weightKg = "weight_kg"
+        case takenAt = "taken_at"
     }
 }
 

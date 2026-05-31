@@ -9,6 +9,7 @@ struct MainTabView: View {
     @State private var vm = DashboardViewModel()
     @State private var entitlements = EntitlementService.shared
     @State private var router = DeepLinkRouter.shared
+    @Environment(\.scenePhase) private var scenePhase
     @State private var selection: Tab = .home
     /// Remembers the last "real" tab so the Scan trigger can restore it after dismissal.
     @State private var lastTab: Tab = .home
@@ -71,6 +72,12 @@ struct MainTabView: View {
         }
         .onAppear {
             if router.pendingScan { consumeScanLink() }
+        }
+        // Returning to the foreground may follow water logged from the widget —
+        // reload so those taps are persisted (vm.load drains the pending queue)
+        // and the dashboard reflects them.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await vm.load() } }
         }
         .fullScreenCover(isPresented: $showingScan) {
             ScanFlowView { _ in

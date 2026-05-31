@@ -59,7 +59,7 @@ struct ProfileView: View {
                    }
                },
                message: {
-                   Text("This permanently removes your profile, logs, weights, scans, and subscription record. It cannot be undone.")
+                   Text("This permanently removes your profile, logs, weights, measurements, progress photos, scans, and subscription record. It cannot be undone.")
                })
         .alert("Error", isPresented: .constant(error != nil), actions: {
             Button("OK") { error = nil }

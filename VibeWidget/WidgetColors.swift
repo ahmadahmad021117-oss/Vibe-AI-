@@ -9,6 +9,7 @@ enum WColor {
     static let textMuted = Color(light: 0x5A6072, dark: 0x9AA0B0)
     static let accent = Color(light: 0x0EA5E9, dark: 0x22D3EE)
     static let accentAlt = Color(light: 0x10B981, dark: 0x34D399)
+    static let accentDeep = Color(light: 0x0284C7, dark: 0x0EA5E9)
     static let warning = Color(light: 0xD97706, dark: 0xFBBF24)
     static let track = Color(light: 0xDFE2EA, dark: 0x2A2A38)
 

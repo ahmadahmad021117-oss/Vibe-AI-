@@ -51,6 +51,7 @@ struct ProfilePatch {
     var mealSuggestionsEnabled: Bool?
     var notificationPref: NotificationPref?
     var healthSyncEnabled: Bool?
+    var waterGoalMl: Int?
     var pace: Pace?
     var marketingEmail: String?
     var marketingEmailOptIn: Bool?
@@ -70,6 +71,7 @@ struct ProfilePatch {
         if let mealSuggestionsEnabled { out["meal_suggestions_enabled"] = .bool(mealSuggestionsEnabled) }
         if let notificationPref { out["notification_pref"] = .string(notificationPref.rawValue) }
         if let healthSyncEnabled { out["health_sync_enabled"] = .bool(healthSyncEnabled) }
+        if let waterGoalMl { out["water_goal_ml"] = .integer(waterGoalMl) }
         if let pace { out["pace"] = .string(pace.rawValue) }
         if let marketingEmail { out["marketing_email"] = .string(marketingEmail) }
         if let marketingEmailOptIn { out["marketing_email_opt_in"] = .bool(marketingEmailOptIn) }

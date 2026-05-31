@@ -26,12 +26,16 @@ final class AccountService {
         async let targetT = TargetService.shared.fetchLatest()
         async let logsT = FoodLogService.shared.fetchToday()
         async let weightsT = WeightLogService.shared.fetchRecent(days: 365)
+        async let measurementsT = BodyMeasurementService.shared.list(limit: 1000)
+        async let photosT = ProgressPhotoService.shared.list(limit: 1000)
 
         let profile = try await profileT
         let goal = try await goalT
         let target = try await targetT
         let logs = try await logsT
         let weights = try await weightsT
+        let measurements = try await measurementsT
+        let photos = try await photosT
 
         struct Export: Codable {
             let exported_at: Date
@@ -40,6 +44,8 @@ final class AccountService {
             let target: NutritionTarget?
             let food_logs: [FoodLog]
             let weight_logs: [WeightLog]
+            let body_measurements: [BodyMeasurement]
+            let progress_photos: [ProgressPhoto]
         }
 
         let payload = Export(
@@ -48,7 +54,9 @@ final class AccountService {
             goal: goal,
             target: target,
             food_logs: logs,
-            weight_logs: weights
+            weight_logs: weights,
+            body_measurements: measurements,
+            progress_photos: photos
         )
 
         let encoder = JSONEncoder()

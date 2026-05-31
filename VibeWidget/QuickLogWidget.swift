@@ -1,17 +1,20 @@
 import SwiftUI
 import WidgetKit
 
-/// Lock-screen widget for fast logging. Circular shows a calorie gauge;
-/// rectangular shows the running total. Tapping either opens the camera.
+/// Quick-log widget.
+///   * Accessory families (lock screen): a compact calorie gauge with the
+///     water total; tapping opens the camera.
+///   * systemSmall (home screen): calories left, a water progress bar, and an
+///     interactive "+250 ml" button that logs water without opening the app.
 struct QuickLogWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "QuickLogWidget", provider: CalorieProvider()) { entry in
             QuickLogView(snapshot: entry.snapshot)
-                .widgetURL(WidgetDeepLink.scan)
+                .containerBackground(WColor.bg, for: .widget)
         }
         .configurationDisplayName("Quick Log")
-        .description("Tap to snap a meal and log calories.")
-        .supportedFamilies([.accessoryCircular, .accessoryRectangular])
+        .description("Track water with one tap and snap a meal to log calories.")
+        .supportedFamilies([.accessoryCircular, .accessoryRectangular, .systemSmall])
     }
 }
 
@@ -21,12 +24,83 @@ private struct QuickLogView: View {
 
     var body: some View {
         switch family {
+        case .systemSmall:
+            small
         case .accessoryRectangular:
-            rectangular
+            rectangular.widgetURL(WidgetDeepLink.scan)
         default:
-            circular
+            circular.widgetURL(WidgetDeepLink.scan)
         }
     }
+
+    // MARK: - Home screen (interactive)
+
+    private var small: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Calories — tapping this region opens the scan flow.
+            Link(destination: WidgetDeepLink.scan) {
+                HStack(spacing: 6) {
+                    Image(systemName: "fork.knife")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(WColor.accent)
+                    if snapshot.kcalTarget == 0 {
+                        Text("Tap to log")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(WColor.text)
+                    } else if snapshot.isOverTarget {
+                        Text("\(snapshot.kcalOver) over")
+                            .font(.system(size: 16, weight: .heavy, design: .rounded))
+                            .foregroundStyle(WColor.warning)
+                    } else {
+                        Text("\(snapshot.kcalRemaining)")
+                            .font(.system(size: 18, weight: .heavy, design: .rounded))
+                            .foregroundStyle(WColor.text)
+                        Text("kcal")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(WColor.textMuted)
+                    }
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            // Water progress.
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 4) {
+                    Image(systemName: "drop.fill")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(WColor.accentDeep)
+                    Text("\(snapshot.waterLitresString) / \(snapshot.waterGoalLitresString) L")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(WColor.text)
+                }
+                GeometryReader { proxy in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(WColor.track)
+                        Capsule().fill(WColor.accentDeep)
+                            .frame(width: snapshot.waterProgress * proxy.size.width)
+                    }
+                }
+                .frame(height: 6)
+            }
+
+            // Interactive: log a glass without opening the app.
+            Button(intent: LogWaterIntent(amountMl: 250)) {
+                HStack(spacing: 4) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 11, weight: .bold))
+                    Text("250 ml")
+                        .font(.system(size: 12, weight: .semibold))
+                }
+                .foregroundStyle(WColor.accentDeep)
+                .frame(maxWidth: .infinity, minHeight: 28)
+                .background(WColor.accentDeep.opacity(0.15), in: Capsule())
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    // MARK: - Lock screen
 
     private var circular: some View {
         ZStack {
@@ -56,7 +130,7 @@ private struct QuickLogView: View {
                 } else {
                     Text("\(snapshot.kcalRemaining) kcal left")
                         .font(.system(size: 15, weight: .semibold))
-                    Text("\(snapshot.kcalConsumed) / \(snapshot.kcalTarget) · tap to log")
+                    Text("Water \(snapshot.waterLitresString) / \(snapshot.waterGoalLitresString) L")
                         .font(.system(size: 12))
                 }
             }

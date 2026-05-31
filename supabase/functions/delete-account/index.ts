@@ -44,16 +44,21 @@ serve(async (req) => {
   );
 
   try {
-    // 1. List & remove storage objects under <uid>/.
-    const { data: files } = await admin.storage.from('food-scans').list(uid, { limit: 1000 });
-    if (files && files.length > 0) {
-      const paths = files.map((f) => `${uid}/${f.name}`);
-      await admin.storage.from('food-scans').remove(paths);
+    // 1. List & remove storage objects under <uid>/ in every private bucket.
+    for (const bucket of ['food-scans', 'progress-photos']) {
+      const { data: files } = await admin.storage.from(bucket).list(uid, { limit: 1000 });
+      if (files && files.length > 0) {
+        const paths = files.map((f) => `${uid}/${f.name}`);
+        await admin.storage.from(bucket).remove(paths);
+      }
     }
 
     // 2. Delete from user-scoped tables. ON DELETE CASCADE on auth.users also fires for FK rows.
     //    We delete explicitly anyway to handle any tables added later that may not cascade.
-    const tables = ['food_logs', 'weight_logs', 'activity_syncs', 'targets', 'goals', 'entitlements', 'profiles'];
+    const tables = [
+      'food_logs', 'weight_logs', 'water_logs', 'body_measurements', 'progress_photos',
+      'activity_syncs', 'targets', 'goals', 'entitlements', 'profiles',
+    ];
     for (const t of tables) {
       await admin.from(t).delete().eq(t === 'entitlements' ? 'user_id' : (t === 'profiles' ? 'id' : 'user_id'), uid);
     }

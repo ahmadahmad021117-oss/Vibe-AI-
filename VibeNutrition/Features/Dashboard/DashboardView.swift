@@ -11,6 +11,7 @@ struct DashboardView: View {
     @State private var showingManualEntry = false
     @State private var showingProfile = false
     @State private var showingWeekly = false
+    @State private var showingWaterGoal = false
     @State private var nutrientPage: NutrientPage = .macros
 
     var body: some View {
@@ -23,6 +24,8 @@ struct DashboardView: View {
                         .padding(.horizontal, Theme.Spacing.lg)
                     nutrientPager
                     actionsRow
+                        .padding(.horizontal, Theme.Spacing.lg)
+                    waterCard
                         .padding(.horizontal, Theme.Spacing.lg)
                     if vm.profile?.mealSuggestionsEnabled ?? true {
                         mealIdeasSection
@@ -77,6 +80,11 @@ struct DashboardView: View {
         .sheet(isPresented: $showingProfile) { ProfileView() }
         .sheet(isPresented: $showingWeekly, onDismiss: { Task { await vm.load() } }) {
             WeeklyProgressView()
+        }
+        .sheet(isPresented: $showingWaterGoal) {
+            WaterGoalSheet(initialMl: vm.waterGoalMl) { newGoal in
+                Task { await vm.setWaterGoal(ml: newGoal) }
+            }
         }
     }
 
@@ -419,6 +427,77 @@ struct DashboardView: View {
             .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))
         }
         .accessibilityLabel(title)
+    }
+
+    // MARK: - Water
+
+    private var waterCard: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+            HStack {
+                Image(systemName: "drop.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Theme.Palette.accentDeep)
+                Text("Water")
+                    .font(Theme.Typo.caption)
+                    .foregroundStyle(Theme.Palette.textMuted)
+                Spacer()
+                Button {
+                    Haptics.tapLight()
+                    showingWaterGoal = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Text("\(vm.waterConsumedMl.grouped) / \(vm.waterGoalMl.grouped) ml")
+                            .font(Theme.Typo.caption)
+                            .foregroundStyle(Theme.Palette.text)
+                        Image(systemName: "pencil")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Theme.Palette.textDim)
+                    }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Water goal \(vm.waterGoalMl) millilitres. Tap to edit.")
+            }
+
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Theme.Palette.bg)
+                    Capsule()
+                        .fill(Theme.Palette.accentDeep)
+                        .frame(width: vm.waterProgress * proxy.size.width)
+                        .animation(Theme.Motion.spring, value: vm.waterProgress)
+                }
+            }
+            .frame(height: 8)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Water")
+            .accessibilityValue("\(vm.waterConsumedMl) of \(vm.waterGoalMl) millilitres")
+
+            HStack(spacing: Theme.Spacing.sm) {
+                waterQuickAdd(ml: 250, label: "Glass")
+                waterQuickAdd(ml: 500, label: "Bottle")
+            }
+        }
+        .padding(Theme.Spacing.md)
+        .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))
+    }
+
+    private func waterQuickAdd(ml: Int, label: String) -> some View {
+        Button {
+            Haptics.tapMedium()
+            Task { await vm.addWater(ml: ml) }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "plus")
+                    .font(.system(size: 12, weight: .bold))
+                Text("\(label) · \(ml) ml")
+                    .font(Theme.Typo.caption)
+            }
+            .foregroundStyle(Theme.Palette.accentDeep)
+            .frame(maxWidth: .infinity, minHeight: 40)
+            .background(Theme.Palette.accentDeep.opacity(0.12), in: RoundedRectangle(cornerRadius: Theme.Radii.md))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Add \(ml) millilitres of water")
     }
 
     /// Inline meal-ideas row — fetched once when Home appears, with a refresh button.

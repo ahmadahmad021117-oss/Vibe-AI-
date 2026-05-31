@@ -13,6 +13,8 @@ struct ProgressTabView: View {
     @State private var showingProfile = false
     @State private var showingEditWeight = false
     @State private var showingEditGoalWeight = false
+    @State private var showingMeasurements = false
+    @State private var showingPhotos = false
 
     var body: some View {
         ZStack {
@@ -27,6 +29,7 @@ struct ProgressTabView: View {
                 VStack(alignment: .leading, spacing: Theme.Spacing.md) {
                     weightCard
                     projectionCard
+                    bodyCard
                     calorieHistoryCard
                     // The system tab bar sits over the bottom — pad so the
                     // calorie chart doesn't end up half-hidden behind it.
@@ -67,6 +70,67 @@ struct ProgressTabView: View {
                 Task { await vm.saveGoalWeight(newKg) }
             }
         }
+        .sheet(isPresented: $showingMeasurements) { MeasurementsView() }
+        .sheet(isPresented: $showingPhotos) { ProgressPhotosView() }
+    }
+
+    // MARK: - Body (measurements + photos)
+
+    private var bodyCard: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            sectionLabel("Body")
+            HStack(spacing: Theme.Spacing.sm) {
+                bodyTile(iconSystem: "ruler.fill", iconTint: .purple,
+                         label: "Measurements", caption: "Waist, hips, body fat") {
+                    showingMeasurements = true
+                }
+                bodyTile(iconSystem: "camera.fill", iconTint: .pink,
+                         label: "Photos", caption: "See your change") {
+                    showingPhotos = true
+                }
+            }
+        }
+    }
+
+    private func bodyTile(iconSystem: String, iconTint: Color, label: String,
+                          caption: String, action: @escaping () -> Void) -> some View {
+        Button {
+            Haptics.tapLight()
+            action()
+        } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: iconSystem)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 22, height: 22)
+                        .background(iconTint, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Theme.Palette.textDim)
+                }
+                Text(label)
+                    .font(Theme.Typo.bodyBold)
+                    .foregroundStyle(Theme.Palette.text)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                Text(caption)
+                    .font(Theme.Typo.caption)
+                    .foregroundStyle(Theme.Palette.textMuted)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .padding(Theme.Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.Radii.lg)
+                    .stroke(Theme.Palette.border.opacity(0.7), lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(label). \(caption). Tap to open.")
     }
 
     // MARK: - Header
