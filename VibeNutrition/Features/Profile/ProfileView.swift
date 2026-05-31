@@ -46,6 +46,10 @@ struct ProfileView: View {
             }
         }
         .task { await load() }
+        // Settings is a sheet with its own presentation context, so the root's
+        // .preferredColorScheme doesn't reach it live. Bind it here too so the
+        // appearance change is reflected immediately while this sheet is open.
+        .preferredColorScheme(appTheme.colorScheme)
         .alert("Delete your account?",
                isPresented: $showingDeleteConfirm,
                actions: {
