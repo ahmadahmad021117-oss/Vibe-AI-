@@ -3,6 +3,7 @@ import SwiftUI
 struct PlanPreviewView: View {
     let result: NutritionEngine.Result
     let inputs: NutritionEngine.Inputs
+    var unitsPref: UnitsPref = .metric
     let onContinue: () -> Void
 
     var body: some View {
@@ -18,6 +19,8 @@ struct PlanPreviewView: View {
                         .padding(.vertical, Theme.Spacing.lg)
 
                     macroSplit
+
+                    weightSummary
 
                     weeklyProjection
 
@@ -127,6 +130,46 @@ struct PlanPreviewView: View {
         .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))
     }
 
+    private var weightSummary: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+            Text("Weight")
+                .font(Theme.Typo.h3)
+                .foregroundStyle(Theme.Palette.text)
+            HStack(spacing: Theme.Spacing.md) {
+                weightStat(label: "Current", value: weightText(inputs.weightKg))
+                if let goalKg = inputs.goalWeightKg {
+                    Image(systemName: "arrow.right")
+                        .font(Theme.Typo.body)
+                        .foregroundStyle(Theme.Palette.textMuted)
+                    weightStat(label: "Target", value: weightText(goalKg))
+                }
+            }
+        }
+        .padding(Theme.Spacing.md)
+        .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))
+    }
+
+    private func weightStat(label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(Theme.Typo.caption)
+                .foregroundStyle(Theme.Palette.textMuted)
+            Text(value)
+                .font(Theme.Typo.numeralLG)
+                .foregroundStyle(Theme.Palette.text)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func weightText(_ kg: Double) -> String {
+        switch unitsPref {
+        case .metric:
+            return "\(String(format: "%.1f", kg)) kg"
+        case .imperial:
+            return "\(String(format: "%.1f", kg * 2.2046226218)) lb"
+        }
+    }
+
     private var weeklyProjection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             Text("Weekly projection")
@@ -151,7 +194,12 @@ struct PlanPreviewView: View {
     private var weeklyDeltaText: String {
         let kg = result.weeklyDeltaKg
         let prefix = kg > 0 ? "+" : ""
-        return "\(prefix)\(String(format: "%.2f", kg)) kg"
+        switch unitsPref {
+        case .metric:
+            return "\(prefix)\(String(format: "%.2f", kg)) kg"
+        case .imperial:
+            return "\(prefix)\(String(format: "%.2f", kg * 2.2046226218)) lb"
+        }
     }
 
     private var deltaTint: Color {

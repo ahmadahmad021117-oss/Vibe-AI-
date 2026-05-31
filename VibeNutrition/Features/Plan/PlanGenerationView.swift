@@ -2,7 +2,7 @@ import SwiftUI
 
 struct PlanGenerationView: View {
     let onboarding: OnboardingState?
-    let onReady: (NutritionEngine.Result, NutritionEngine.Inputs) -> Void
+    let onReady: (NutritionEngine.Result, NutritionEngine.Inputs, UnitsPref) -> Void
 
     @State private var generator = PlanGenerator()
     @State private var pulse = false
@@ -71,9 +71,10 @@ struct PlanGenerationView: View {
             if new == .ready, let result = generator.result, let inputs = generator.inputs {
                 Haptics.success()
                 // Brief pause so the user sees the "ready" state before sliding away.
+                let unitsPref = generator.unitsPref
                 Task {
                     try? await Task.sleep(for: .milliseconds(450))
-                    onReady(result, inputs)
+                    onReady(result, inputs, unitsPref)
                 }
             }
         }
@@ -85,5 +86,5 @@ struct PlanGenerationView: View {
     // The view kicks off PlanGenerator on appear, which hits Supabase. The
     // preview is therefore most useful for the static loading layout —
     // pulse animation + progress bar.
-    PlanGenerationView(onboarding: nil) { _, _ in }
+    PlanGenerationView(onboarding: nil) { _, _, _ in }
 }
