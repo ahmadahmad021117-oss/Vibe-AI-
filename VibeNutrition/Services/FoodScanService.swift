@@ -101,4 +101,40 @@ final class FoodScanService {
             throw FoodScanError.analysisFailed(error.localizedDescription)
         }
     }
+
+    /// Estimate macros from a free-text meal description (e.g. "4 eggs and a toast").
+    /// Premium-gated, like `analyze(imageData:)`. Returns one item per detected food.
+    func analyzeText(description: String) async throws -> AnalyzedFood {
+        guard AuthService.shared.userId != nil else { throw FoodScanError.noUser }
+
+        // Premium gate. Server-side is authoritative; this just avoids the
+        // round-trip when we already know the user has no entitlement.
+        try EntitlementService.shared.assertCanScan()
+
+        struct AnalyzeTextRequest: Encodable { let description: String }
+        struct AnalyzeError: Decodable { let error: String?; let detail: String? }
+
+        do {
+            let response: AnalyzedFood = try await SupabaseService.shared.functions
+                .invoke("analyze-food-text",
+                        options: FunctionInvokeOptions(body: AnalyzeTextRequest(description: description)))
+            return response
+        } catch let err as FunctionsError {
+            if case .httpError(let status, let data) = err {
+                // Server-side authoritative entitlement gate (see analyze()).
+                if status == 402 {
+                    throw FoodScanError.premiumRequired
+                }
+                if let body = try? JSONDecoder().decode(AnalyzeError.self, from: data) {
+                    if body.error == "premium_required" || body.error == "quota_exceeded" {
+                        throw FoodScanError.premiumRequired
+                    }
+                    throw FoodScanError.analysisFailed(body.detail ?? body.error ?? "server error")
+                }
+            }
+            throw FoodScanError.analysisFailed(err.localizedDescription)
+        } catch {
+            throw FoodScanError.analysisFailed(error.localizedDescription)
+        }
+    }
 }

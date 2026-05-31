@@ -8,6 +8,9 @@ struct DashboardView: View {
     @State private var entitlements = EntitlementService.shared
     @State private var showingScan = false
     @State private var showingPaywall = false
+    /// True when the paywall was opened from the manual sheet's "Estimate with
+    /// AI" path, so a successful unlock reopens manual entry instead of the camera.
+    @State private var paywallFromManual = false
     @State private var showingManualEntry = false
     @State private var showingProfile = false
     @State private var showingWeekly = false
@@ -64,17 +67,30 @@ struct DashboardView: View {
             PaywallView(
                 onUnlocked: {
                     showingPaywall = false
-                    // Fall through to the camera on a successful purchase —
-                    // matches the "tap once, get scanning" intent.
-                    showingScan = true
+                    // Fall through to wherever the user was headed: the AI
+                    // text estimator (manual sheet) or the camera scanner.
+                    if paywallFromManual {
+                        paywallFromManual = false
+                        showingManualEntry = true
+                    } else {
+                        showingScan = true
+                    }
                 },
-                onSkip: { showingPaywall = false }
+                onSkip: {
+                    showingPaywall = false
+                    paywallFromManual = false
+                }
             )
         }
         .sheet(isPresented: $showingManualEntry) {
             ManualEntrySheet(onSaved: {
                 showingManualEntry = false
                 Task { await vm.load() }
+            }, onRequestPaywall: {
+                // ManualEntrySheet already dismissed itself; present the paywall
+                // on the next runloop so the sheet→cover transition doesn't race.
+                paywallFromManual = true
+                DispatchQueue.main.async { showingPaywall = true }
             })
         }
         .sheet(isPresented: $showingProfile) { ProfileView() }
