@@ -5,6 +5,8 @@ enum FoodScanError: LocalizedError {
     case noUser
     case uploadFailed
     case analysisFailed(String)
+    /// Text-description estimate (analyze-food-text) failed server-side.
+    case textAnalysisFailed(String)
     /// Active premium entitlement required. Free users land here even on
     /// their first tap — there's no free daily allowance anymore.
     case premiumRequired
@@ -24,6 +26,13 @@ enum FoodScanError: LocalizedError {
                 localized: "food_scan.error.analysis_failed",
                 defaultValue: "Couldn't analyze the photo (%@).",
                 comment: "Food scan: server analysis failed; %@ is a short server-supplied detail string"
+            )
+            return String(format: template, detail)
+        case .textAnalysisFailed(let detail):
+            let template = String(
+                localized: "food_text.error.analysis_failed",
+                defaultValue: "Couldn't estimate that meal (%@). Try rewording it.",
+                comment: "Text meal estimate: server analysis failed; %@ is a short server-supplied detail string"
             )
             return String(format: template, detail)
         case .premiumRequired:
@@ -129,12 +138,12 @@ final class FoodScanService {
                     if body.error == "premium_required" || body.error == "quota_exceeded" {
                         throw FoodScanError.premiumRequired
                     }
-                    throw FoodScanError.analysisFailed(body.detail ?? body.error ?? "server error")
+                    throw FoodScanError.textAnalysisFailed(body.detail ?? body.error ?? "server error")
                 }
             }
-            throw FoodScanError.analysisFailed(err.localizedDescription)
+            throw FoodScanError.textAnalysisFailed(err.localizedDescription)
         } catch {
-            throw FoodScanError.analysisFailed(error.localizedDescription)
+            throw FoodScanError.textAnalysisFailed(error.localizedDescription)
         }
     }
 }
