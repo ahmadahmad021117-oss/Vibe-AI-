@@ -19,6 +19,9 @@ final class PlanGenerator {
     private(set) var stage: Stage = .loadingProfile
     private(set) var result: NutritionEngine.Result?
     private(set) var inputs: NutritionEngine.Inputs?
+    /// Display-only unit preference, resolved alongside the inputs. Kept off
+    /// `NutritionEngine.Inputs` because the engine is unit-agnostic (kg/cm).
+    private(set) var unitsPref: UnitsPref = .metric
     private(set) var errorMessage: String?
 
     /// 0...1, advances as we move through the real stages.
@@ -52,6 +55,7 @@ final class PlanGenerator {
             let healthOn = resolved.healthSyncEnabled
             let pace = resolved.pace
             let goalWeightKg = resolved.goalWeightKg
+            self.unitsPref = resolved.unitsPref
 
             var avgSteps: Int? = nil
             if healthOn {
@@ -118,6 +122,7 @@ final class PlanGenerator {
         /// surplus) so a stale `GoalType` enum (e.g. user picked "Lose" in onboarding then
         /// later edited goal weight to be above current) can't drag the math the wrong way.
         var goalWeightKg: Double?
+        var unitsPref: UnitsPref
     }
 
     private func resolveInputs(onboarding: OnboardingState?) async throws -> ResolvedInputs {
@@ -133,7 +138,8 @@ final class PlanGenerator {
                 sex: sex, age: age, heightCm: height, weightKg: weight,
                 trainingDaysPerWeek: days, goal: goal, mainFocus: o.mainFocus,
                 healthSyncEnabled: o.healthSyncEnabled, pace: o.pace,
-                goalWeightKg: o.goalWeightKg
+                goalWeightKg: o.goalWeightKg,
+                unitsPref: o.unitsPref
             )
         }
 
@@ -169,7 +175,8 @@ final class PlanGenerator {
             mainFocus: profile.mainFocus,
             healthSyncEnabled: profile.healthSyncEnabled,
             pace: profile.pace ?? .medium,
-            goalWeightKg: latestGoal.goalWeightKg
+            goalWeightKg: latestGoal.goalWeightKg,
+            unitsPref: profile.unitsPref
         )
     }
 }
