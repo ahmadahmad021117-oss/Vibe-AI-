@@ -4,7 +4,7 @@ enum RootDestination: Equatable {
     case splash
     case onboarding
     case planGeneration
-    case planPreview(NutritionEngine.Result, NutritionEngine.Inputs)
+    case planPreview(NutritionEngine.Result, NutritionEngine.Inputs, UnitsPref)
     case paywall
     case auth
     case main
@@ -39,17 +39,17 @@ struct RootCoordinator: View {
                 .transition(.move(edge: .trailing).combined(with: .opacity))
 
             case .planGeneration:
-                PlanGenerationView(onboarding: onboardingState) { result, inputs in
+                PlanGenerationView(onboarding: onboardingState) { result, inputs, unitsPref in
                     pendingResult = result
                     pendingInputs = inputs
                     withAnimation(.easeInOut(duration: Theme.Motion.base)) {
-                        destination = .planPreview(result, inputs)
+                        destination = .planPreview(result, inputs, unitsPref)
                     }
                 }
                 .transition(.opacity)
 
-            case let .planPreview(result, inputs):
-                PlanPreviewView(result: result, inputs: inputs) {
+            case let .planPreview(result, inputs, unitsPref):
+                PlanPreviewView(result: result, inputs: inputs, unitsPref: unitsPref) {
                     Task { await advanceFromPreview() }
                 }
                 .transition(.move(edge: .trailing).combined(with: .opacity))
@@ -62,8 +62,14 @@ struct RootCoordinator: View {
                 .transition(.move(edge: .trailing).combined(with: .opacity))
 
             case .auth:
-                AuthGateView(onAuthenticated: { Task { await afterSignIn() } })
-                    .transition(.opacity)
+                // A new user who just finished onboarding has pending state to
+                // commit, so default the form to "create account"; the sign-out
+                // path (returning users) has none and defaults to sign-in.
+                AuthGateView(
+                    onAuthenticated: { Task { await afterSignIn() } },
+                    startInSignUpMode: onboardingState != nil
+                )
+                .transition(.opacity)
 
             case .main:
                 MainTabView()

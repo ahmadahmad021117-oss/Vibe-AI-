@@ -4,6 +4,9 @@ import CryptoKit
 
 struct AuthGateView: View {
     let onAuthenticated: () -> Void
+    /// New users reaching this screen at the end of onboarding should default to
+    /// creating an account; the sign-out path (returning users) defaults to sign-in.
+    var startInSignUpMode: Bool = false
 
     @State private var email = ""
     @State private var password = ""
@@ -12,11 +15,11 @@ struct AuthGateView: View {
     @State private var currentNonce: String?
     /// Email form starts collapsed — most users sign in with Apple. Reveals on tap.
     @State private var showingEmailForm = false
-    /// After a failed sign-in we surface a secondary "Create account" button
-    /// rather than silently creating an account for the user. Previous behaviour
-    /// of "if signIn fails, signUp" masked wrong-password mistakes and produced
-    /// "Email already in use" loops for returning users.
-    @State private var signInFailed = false
+    /// Whether the email form creates an account or signs in. An always-visible
+    /// toggle lets the user switch explicitly — we never auto-route between the
+    /// two, because Supabase returns the same error for wrong-password and
+    /// user-not-found, and covert account creation isn't App Store-friendly.
+    @State private var isSignUp = false
     /// Drives the entrance animation on the hero icon. Starts at 0 (small) and
     /// springs to 1 once the view appears, giving the first impression a bit
     /// of life — important because a flat icon reads "boring utility" to the
@@ -71,6 +74,7 @@ struct AuthGateView: View {
         .sheet(isPresented: $showingPrivacy) { PrivacyPolicyView() }
         .sheet(isPresented: $showingTerms) { TermsOfServiceView() }
         .onAppear {
+            isSignUp = startInSignUpMode
             // Stagger the hero spring slightly so the first frame doesn't catch
             // it mid-bounce — feels more deliberate.
             withAnimation(.spring(response: 0.6, dampingFraction: 0.55).delay(0.05)) {
@@ -184,34 +188,37 @@ struct AuthGateView: View {
                     .multilineTextAlignment(.center)
             }
 
-            SecondaryButton(title: isLoading ? "Signing in…" : "Continue") {
-                Task { await emailSignIn() }
+            SecondaryButton(title: primaryButtonTitle) {
+                Task { isSignUp ? await emailSignUp() : await emailSignIn() }
             }
             .disabled(isLoading || email.isEmpty || password.isEmpty)
             .opacity((isLoading || email.isEmpty || password.isEmpty) ? 0.5 : 1)
 
-            // Only shows up after a failed sign-in attempt. Keeps the "no
-            // duplicate-account" guarantee while still offering a first-time
-            // user a clear path to sign up.
-            if signInFailed {
-                Button {
-                    Haptics.tapLight()
-                    Task { await emailSignUp() }
-                }
-                label: {
-                    Text("Don't have an account? **Create one**")
-                        .font(Theme.Typo.caption)
-                        .foregroundStyle(Theme.Palette.textMuted)
-                }
-                .disabled(isLoading || email.isEmpty || password.isEmpty)
+            // Always-visible toggle between create-account and sign-in, so the
+            // user explicitly chooses rather than us guessing.
+            Button {
+                Haptics.tapLight()
+                error = nil
+                withAnimation(Theme.Motion.spring) { isSignUp.toggle() }
+            } label: {
+                Text(isSignUp
+                    ? "Already have an account? **Sign in**"
+                    : "Don't have an account? **Create one**")
+                    .font(Theme.Typo.caption)
+                    .foregroundStyle(Theme.Palette.textMuted)
             }
+            .disabled(isLoading)
         }
         .transition(.opacity.combined(with: .move(edge: .bottom)))
     }
 
+    private var primaryButtonTitle: String {
+        if isLoading { return isSignUp ? "Creating account…" : "Signing in…" }
+        return isSignUp ? "Create account" : "Continue"
+    }
+
     private func emailSignIn() async {
         error = nil
-        signInFailed = false
         isLoading = true
         defer { isLoading = false }
         do {
@@ -220,11 +227,9 @@ struct AuthGateView: View {
         } catch {
             // Supabase returns the same "Invalid login credentials" for both
             // wrong-password and user-not-found, so we can't auto-route. Surface
-            // the error and let the user explicitly choose "Create one" if they
-            // are signing up for the first time. This is also App Store-friendly:
-            // no covert account creation.
+            // the error and let the user switch to "Create one" if they are
+            // signing up for the first time. No covert account creation.
             self.error = "Couldn't sign in. Check your email and password, or create a new account."
-            self.signInFailed = true
         }
     }
 
