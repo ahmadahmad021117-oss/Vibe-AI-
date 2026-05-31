@@ -118,40 +118,58 @@ async function fetchRevenueCatPremium(userId: string): Promise<{ expiresAt: stri
   }
 }
 
+// Hard ceiling on a single Anthropic call. A healthy analysis returns in
+// ~15s; anything past this is hung, so we abort rather than let one bad call
+// burn the whole function timeout (and produce an opaque 30s+ 502).
+const ANTHROPIC_TIMEOUT_MS = 45_000;
+
 async function analyze(imageURL: string): Promise<unknown> {
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
   if (!apiKey) {
     throw new Error('ANTHROPIC_API_KEY not configured');
   }
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
-      system: [
-        // System prompt is cached alongside the tool definition for the prefix-cache hit.
-        { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
-      ],
-      tools: [RECORD_MEAL_TOOL],
-      // Force the model to call record_meal — guarantees a structured response.
-      tool_choice: { type: 'tool', name: 'record_meal' },
-      messages: [
-        {
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'url', url: imageURL } },
-            { type: 'text', text: 'Identify and estimate macros for this meal.' },
-          ],
-        },
-      ],
-    }),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ANTHROPIC_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1024,
+        system: [
+          // System prompt is cached alongside the tool definition for the prefix-cache hit.
+          { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
+        ],
+        tools: [RECORD_MEAL_TOOL],
+        // Force the model to call record_meal — guarantees a structured response.
+        tool_choice: { type: 'tool', name: 'record_meal' },
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'image', source: { type: 'url', url: imageURL } },
+              { type: 'text', text: 'Identify and estimate macros for this meal.' },
+            ],
+          },
+        ],
+      }),
+    });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error(`Anthropic timed out after ${ANTHROPIC_TIMEOUT_MS}ms`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!res.ok) {
     const errText = await res.text();
@@ -164,6 +182,61 @@ async function analyze(imageURL: string): Promise<unknown> {
     throw new Error('Anthropic response missing tool_use block');
   }
   return toolBlock.input;
+}
+
+// Clamp the model's raw output into the schema's accepted ranges instead of
+// rejecting it outright. A large bowl that the model estimates at 2400g, or a
+// kcal value returned as a float, are *correct enough* — capping them gives the
+// user a usable estimate rather than an opaque 502. We only give up when the
+// payload has no recoverable items at all (the genuine "couldn't read it" case).
+function clampNumber(v: unknown, min: number, max: number): number | null {
+  const n = typeof v === 'number' ? v : Number(v);
+  if (!Number.isFinite(n)) return null;
+  return Math.min(max, Math.max(min, n));
+}
+
+function clampOptional(v: unknown, max: number): number | undefined {
+  if (v === undefined || v === null) return undefined;
+  const n = clampNumber(v, 0, max);
+  return n === null ? undefined : n;
+}
+
+function normalize(raw: unknown): z.infer<typeof ResponseSchema> | null {
+  const rawItems = (raw as { items?: unknown })?.items;
+  if (!Array.isArray(rawItems)) return null;
+
+  const items = rawItems.slice(0, 20).flatMap((it) => {
+    const r = it as Record<string, unknown>;
+    const name = typeof r.name === 'string' ? r.name.trim().slice(0, 80) : '';
+    const grams = clampNumber(r.grams, 0.01, 2000);
+    const kcal = clampNumber(r.kcal, 0, 5000);
+    const protein = clampNumber(r.protein_g, 0, 500);
+    const carbs = clampNumber(r.carbs_g, 0, 500);
+    const fat = clampNumber(r.fat_g, 0, 500);
+    // Drop only items missing the required, non-recoverable fields.
+    if (!name || grams === null || kcal === null || protein === null || carbs === null || fat === null) {
+      return [];
+    }
+    return [{
+      name,
+      grams,
+      kcal: Math.round(kcal),
+      protein_g: protein,
+      carbs_g: carbs,
+      fat_g: fat,
+      confidence: clampOptional(r.confidence, 1),
+      vitamin_d_mcg:   clampOptional(r.vitamin_d_mcg, 200),
+      vitamin_b12_mcg: clampOptional(r.vitamin_b12_mcg, 200),
+      vitamin_c_mg:    clampOptional(r.vitamin_c_mg, 2000),
+      magnesium_mg:    clampOptional(r.magnesium_mg, 2000),
+      iron_mg:         clampOptional(r.iron_mg, 100),
+      zinc_mg:         clampOptional(r.zinc_mg, 100),
+    }];
+  });
+
+  if (items.length === 0) return null;
+  const result = ResponseSchema.safeParse({ items });
+  return result.success ? result.data : null;
 }
 
 serve(async (req) => {
@@ -295,17 +368,23 @@ serve(async (req) => {
       });
     }
 
-    // Call Claude, retry once on schema-validation failure (model occasionally returns out-of-range values).
+    // Call Claude, retry on failure. Out-of-range model values are clamped by
+    // normalize() rather than rejected, so a retry here is really only for
+    // transient Anthropic errors (overload/5xx/timeout) or an unreadable photo.
     let validated: z.infer<typeof ResponseSchema> | null = null;
-    let lastError: unknown = null;
-    for (let attempt = 0; attempt < 2 && !validated; attempt++) {
+    let lastError = 'unknown';
+    const MAX_ATTEMPTS = 3;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS && !validated; attempt++) {
+      // Brief backoff before a retry — an instant re-fire during an Anthropic
+      // overload window tends to hit the same failure.
+      if (attempt > 0) await new Promise((r) => setTimeout(r, 600 * attempt));
       try {
         const raw = await analyze(signed.signedUrl);
-        const result = ResponseSchema.safeParse(raw);
-        if (result.success) {
-          validated = result.data;
+        const normalized = normalize(raw);
+        if (normalized) {
+          validated = normalized;
         } else {
-          lastError = result.error.issues;
+          lastError = 'model returned no usable food items';
         }
       } catch (err) {
         lastError = err instanceof Error ? err.message : String(err);
@@ -315,6 +394,9 @@ serve(async (req) => {
     if (!validated) {
       // Anthropic failed — refund the attempt so the user isn't charged for our outage.
       await finalise('failed');
+      // Log the real reason: 502s are otherwise invisible in the dashboard,
+      // which is what made this class of failure undiagnosable before.
+      console.error(`analyze-food 502 for user ${user.id} path ${path}: ${lastError}`);
       return new Response(
         JSON.stringify({ error: 'analysis_failed', detail: lastError }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

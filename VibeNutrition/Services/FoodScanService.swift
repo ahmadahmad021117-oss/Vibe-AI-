@@ -21,13 +21,15 @@ enum FoodScanError: LocalizedError {
             return String(localized: "food_scan.error.upload_failed",
                           defaultValue: "Couldn't upload your photo. Try again.",
                           comment: "Food scan: image upload failed")
-        case .analysisFailed(let detail):
-            let template = String(
+        case .analysisFailed:
+            // The associated value carries the server's technical detail for
+            // logging; users get friendly, actionable copy instead of raw
+            // internals like "Edge Function returned a non-2xx status code".
+            return String(
                 localized: "food_scan.error.analysis_failed",
-                defaultValue: "Couldn't analyze the photo (%@).",
-                comment: "Food scan: server analysis failed; %@ is a short server-supplied detail string"
+                defaultValue: "Our food AI couldn't read that photo. Try again with the meal centred and well lit.",
+                comment: "Food scan: server-side analysis failed or the photo wasn't readable"
             )
-            return String(format: template, detail)
         case .textAnalysisFailed(let detail):
             let template = String(
                 localized: "food_text.error.analysis_failed",
@@ -106,6 +108,10 @@ final class FoodScanService {
                 }
             }
             throw FoodScanError.analysisFailed(err.localizedDescription)
+        } catch let urlError as URLError {
+            // Offline / timeout / unreachable — let friendlyMessage map these to
+            // accurate connectivity copy instead of the analysis-failed message.
+            throw urlError
         } catch {
             throw FoodScanError.analysisFailed(error.localizedDescription)
         }
