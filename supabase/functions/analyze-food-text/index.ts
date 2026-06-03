@@ -102,23 +102,37 @@ const RECORD_MEAL_TOOL = {
 // if no active premium entitlement was found.
 async function fetchRevenueCatPremium(userId: string): Promise<{ expiresAt: string | null } | undefined> {
   const apiKey = Deno.env.get('REVENUECAT_REST_API_KEY');
-  if (!apiKey) return undefined;
-  const entitlementId = Deno.env.get('REVENUECAT_PREMIUM_ID') ?? 'premium';
-
-  try {
-    const res = await fetch(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(userId)}`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-    });
-    if (!res.ok) return undefined;
-    const body = await res.json();
-    const ent = body?.subscriber?.entitlements?.[entitlementId];
-    if (!ent) return undefined;
-    const expiresAt: string | null = ent.expires_date ?? null;
-    if (expiresAt && Date.parse(expiresAt) <= Date.now()) return undefined;
-    return { expiresAt };
-  } catch {
+  if (!apiKey) {
+    console.warn('[entitlement] REVENUECAT_REST_API_KEY not set — cannot self-heal premium from RevenueCat');
     return undefined;
   }
+  const entitlementId = Deno.env.get('REVENUECAT_PREMIUM_ID') ?? 'premium';
+
+  // The iOS app logs into RevenueCat with `UUID.uuidString`, which Swift emits
+  // in UPPERCASE, while the Supabase JWT `user.id` we receive here is lowercase.
+  // A RevenueCat subscriber lookup is a case-sensitive string match (and a miss
+  // silently returns a freshly-created empty subscriber rather than a 404), so
+  // querying only the lowercase id would never find a real entitlement created
+  // under the uppercase id. Try each distinct casing; return the first active.
+  const candidates = [...new Set([userId, userId.toLowerCase(), userId.toUpperCase()])];
+
+  for (const candidate of candidates) {
+    try {
+      const res = await fetch(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(candidate)}`, {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      if (!res.ok) continue;
+      const body = await res.json();
+      const ent = body?.subscriber?.entitlements?.[entitlementId];
+      if (!ent) continue;
+      const expiresAt: string | null = ent.expires_date ?? null;
+      if (expiresAt && Date.parse(expiresAt) <= Date.now()) continue;
+      return { expiresAt };
+    } catch {
+      // Network blip on this casing — fall through and try the next one.
+    }
+  }
+  return undefined;
 }
 
 async function analyze(description: string): Promise<unknown> {
