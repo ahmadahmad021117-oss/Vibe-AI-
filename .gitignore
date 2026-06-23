@@ -52,3 +52,4 @@ fastlane/README.md
 vendor/bundle/
 AppStoreScreenshots/
 build_simulator/
+build_release_check/

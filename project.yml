@@ -23,7 +23,7 @@ settings:
     # these build settings and they OVERRIDE anything in a hand-written
     # Info.plist. They must be set or archives ship with an empty
     # CFBundleShortVersionString/CFBundleVersion and App Store upload fails.
-    MARKETING_VERSION: "1.1"
+    MARKETING_VERSION: "1.2"
     CURRENT_PROJECT_VERSION: "2"
 configs:
   Debug: debug
