@@ -103,6 +103,9 @@ struct RootCoordinator: View {
             await entitlements.refresh()
             let profile = (try? await ProfileService.shared.fetchCurrent()) ?? nil
             if let profile, profile.onboardingCompletedAt != nil {
+                // Remember (locally) that this device has a fully onboarded user,
+                // so a later signed-out launch skips straight to sign-in.
+                OnboardingState.hasCompletedOnboarding = true
                 // Reschedule only — never prompt at launch. The permission
                 // request happens during onboarding / Settings, on a tap.
                 await NotificationService.shared.rescheduleIfAuthorized(pref: profile.notificationPref)
@@ -112,6 +115,10 @@ struct RootCoordinator: View {
                 // work immediately here since we already have a user.
                 destination = .onboarding
             }
+        } else if OnboardingState.hasCompletedOnboarding {
+            // Returning user whose session couldn't be restored (expired/offline).
+            // Don't make them redo onboarding — send them straight to sign-in.
+            destination = .auth
         } else {
             destination = .onboarding
         }
@@ -152,6 +159,7 @@ struct RootCoordinator: View {
         let profile = (try? await ProfileService.shared.fetchCurrent()) ?? nil
         if let profile, profile.onboardingCompletedAt != nil {
             // Returning user signing back in — data already lives in the cloud.
+            OnboardingState.hasCompletedOnboarding = true
             await NotificationService.shared.rescheduleIfAuthorized(pref: profile.notificationPref)
         } else {
             // Brand-new user: persist everything collected before sign-in.
@@ -172,6 +180,7 @@ struct RootCoordinator: View {
             try? await TargetService.shared.writeLatest(result, inputs: inputs)
         }
         try? await ProfileService.shared.markOnboardingComplete()
+        OnboardingState.hasCompletedOnboarding = true
         await NotificationService.shared.rescheduleIfAuthorized(pref: state.notificationPref)
         OnboardingState.clear()
     }

@@ -203,6 +203,18 @@ final class OnboardingState: Codable {
         UserDefaults.standard.removeObject(forKey: storeKey)
     }
 
+    // MARK: - "Has onboarded before" marker
+    /// Sticky local flag, set once a user is known to have finished onboarding.
+    /// It deliberately survives sign-out (and a failed session restore) so a
+    /// returning user lands on the sign-in screen instead of replaying the whole
+    /// onboarding flow. Cleared only on account deletion.
+    private static let completedKey = "vibe.onboarding.completed.v1"
+
+    static var hasCompletedOnboarding: Bool {
+        get { UserDefaults.standard.bool(forKey: completedKey) }
+        set { UserDefaults.standard.set(newValue, forKey: completedKey) }
+    }
+
     // MARK: - Sync to Supabase
     func commit() async {
         let patch = ProfilePatch(

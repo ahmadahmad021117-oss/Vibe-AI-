@@ -306,13 +306,13 @@ struct DashboardView: View {
 
     private var macrosCard: some View {
         nutrientCard(title: "Macros") {
-            nutrientBar(label: "Protein",
+            nutrientBar(label: "🥩 Protein",
                         consumed: vm.proteinConsumed, target: Double(vm.target?.proteinG ?? 0),
                         unit: "g", color: Theme.Palette.accent)
-            nutrientBar(label: "Carbs",
+            nutrientBar(label: "🍞 Carbs",
                         consumed: vm.carbsConsumed, target: Double(vm.target?.carbsG ?? 0),
                         unit: "g", color: Theme.Palette.accentDeep)
-            nutrientBar(label: "Fat",
+            nutrientBar(label: "🥑 Fat",
                         consumed: vm.fatConsumed, target: Double(vm.target?.fatG ?? 0),
                         unit: "g", color: Theme.Palette.accentAlt)
         }

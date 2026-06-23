@@ -73,36 +73,54 @@ struct ScanReviewView: View {
 
     private var totalsCard: some View {
         let t = totals()
-        return HStack(alignment: .center, spacing: Theme.Spacing.md) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Total")
-                    .font(Theme.Typo.caption)
-                    .foregroundStyle(Theme.Palette.textMuted)
-                Text("\(t.kcal) kcal")
-                    .font(Theme.Typo.h2)
+        return VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+            Text("Total")
+                .font(Theme.Typo.caption)
+                .foregroundStyle(Theme.Palette.textMuted)
+
+            // Calories get a full-width line of their own so big numbers
+            // (e.g. 1,138 kcal) never wrap or truncate; they scale down only
+            // in extreme cases.
+            HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.xs) {
+                Text("🔥 \(t.kcal.formatted())")
+                    .font(Theme.Typo.numeralLG)
                     .foregroundStyle(Theme.Palette.text)
+                    .contentTransition(.numericText(value: Double(t.kcal)))
+                Text("kcal")
+                    .font(Theme.Typo.h3)
+                    .foregroundStyle(Theme.Palette.textMuted)
             }
-            Spacer()
-            HStack(spacing: Theme.Spacing.md) {
-                macroTotal("P", grams: t.protein)
-                macroTotal("C", grams: t.carbs)
-                macroTotal("F", grams: t.fat)
+            .lineLimit(1)
+            .minimumScaleFactor(0.4)
+
+            Divider().overlay(Theme.Palette.border)
+                .padding(.vertical, Theme.Spacing.xs)
+
+            HStack(spacing: Theme.Spacing.sm) {
+                macroTotal("🥩", "Protein", grams: t.protein)
+                macroTotal("🍞", "Carbs", grams: t.carbs)
+                macroTotal("🥑", "Fat", grams: t.fat)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Theme.Spacing.md)
         .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))
     }
 
-    private func macroTotal(_ label: String, grams: Double) -> some View {
-        VStack(alignment: .center, spacing: 2) {
+    private func macroTotal(_ emoji: String, _ label: String, grams: Double) -> some View {
+        VStack(spacing: 2) {
+            Text("\(emoji) \(Int(grams.rounded()))g")
+                .font(Theme.Typo.bodyBold)
+                .foregroundStyle(Theme.Palette.text)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .contentTransition(.numericText(value: grams))
             Text(label)
                 .font(Theme.Typo.caption)
                 .foregroundStyle(Theme.Palette.textMuted)
-            Text("\(Int(grams.rounded()))g")
-                .font(Theme.Typo.bodyBold)
-                .foregroundStyle(Theme.Palette.text)
+                .lineLimit(1)
         }
-        .frame(minWidth: 36)
+        .frame(maxWidth: .infinity)
     }
 
     private var itemsList: some View {
@@ -198,22 +216,6 @@ private struct FoodItemRow: View {
 
             Slider(value: gramsBinding, in: sliderRange, step: 5)
                 .tint(Theme.Palette.accent)
-
-            HStack(spacing: Theme.Spacing.md) {
-                Text("\(item.kcal) kcal")
-                    .font(Theme.Typo.caption)
-                    .foregroundStyle(Theme.Palette.textMuted)
-                Spacer()
-                Text("P \(Int(item.proteinG.rounded()))g")
-                    .font(Theme.Typo.caption)
-                    .foregroundStyle(Theme.Palette.textMuted)
-                Text("C \(Int(item.carbsG.rounded()))g")
-                    .font(Theme.Typo.caption)
-                    .foregroundStyle(Theme.Palette.textMuted)
-                Text("F \(Int(item.fatG.rounded()))g")
-                    .font(Theme.Typo.caption)
-                    .foregroundStyle(Theme.Palette.textMuted)
-            }
         }
         .padding(Theme.Spacing.md)
         .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radii.lg))

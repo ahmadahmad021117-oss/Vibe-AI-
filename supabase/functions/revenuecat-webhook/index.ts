@@ -44,9 +44,15 @@ serve(async (req) => {
   }
 
   const event = body?.event;
-  if (!event?.app_user_id || !event.type) {
-    return new Response('missing fields', { status: 400 });
+  if (!event?.type) {
+    return new Response('missing event type', { status: 400 });
   }
+  // NB: app_user_id is intentionally NOT required here. Some event types we
+  // ignore (e.g. TRANSFER) carry transferred_from/transferred_to arrays instead
+  // of a top-level app_user_id. Requiring it up front 400'd those events, which
+  // RevenueCat then retries forever. We only need app_user_id for the events we
+  // actually act on, and the relevance + UUID checks below handle its absence
+  // gracefully (returning 200 so RevenueCat stops retrying).
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
@@ -94,6 +100,18 @@ serve(async (req) => {
   });
 
   if (error) {
+    // 23503 = foreign_key_violation: app_user_id has no matching auth.users row.
+    // This is expected and non-retryable — e.g. a user deleted their account but
+    // their subscription keeps auto-renewing (sandbox renews every few minutes),
+    // or an event lands before sign-up finished. Returning 500 here makes
+    // RevenueCat retry the same doomed event for hours. Acknowledge with 200 and
+    // skip: there is no user to grant the entitlement to.
+    if (error.code === '23503') {
+      console.warn(
+        `[revenuecat-webhook] no auth user for app_user_id=${event.app_user_id}; skipping ${event.type}`,
+      );
+      return new Response('no matching user; skipped', { status: 200 });
+    }
     return new Response(`upsert failed: ${error.message}`, { status: 500 });
   }
 

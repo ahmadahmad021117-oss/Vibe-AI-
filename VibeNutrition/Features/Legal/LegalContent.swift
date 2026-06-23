@@ -51,7 +51,7 @@ enum LegalContent {
         ),
         (
             "Will my data be used to train AI models?",
-            "No. Your food photos are sent to OpenAI for the single purpose of analyzing the " +
+            "No. Your food photos are sent to Anthropic for the single purpose of analyzing the " +
             "meal you just photographed and are not used by us to train any model."
         ),
         (

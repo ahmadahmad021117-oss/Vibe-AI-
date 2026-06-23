@@ -18,21 +18,34 @@ final class AuthService {
     }
 
     private func bootstrap() async {
-        do {
-            session = try await SupabaseService.shared.auth.session
-            userId = session?.user.id
-        } catch {
-            session = nil
-        }
+        // Listen first: with `emitLocalSessionAsInitialSession` the SDK delivers
+        // the stored session right away (even offline), and drives every later
+        // sign-in / token-refresh / sign-out. We only clear our local state on an
+        // explicit SIGNED_OUT — never on a missing session from a transient event.
         authListenerTask = Task { [weak self] in
             for await change in SupabaseService.shared.auth.authStateChanges {
                 guard let self else { return }
-                self.session = change.session
-                self.userId = change.session?.user.id
+                if change.event == .signedOut {
+                    self.session = nil
+                    self.userId = nil
+                } else if let session = change.session {
+                    self.session = session
+                    self.userId = session.user.id
+                }
             }
         }
-        if session != nil {
+
+        do {
+            // Refreshes the token if the access token has expired. With a valid
+            // stored refresh token this succeeds even days later.
+            let restored = try await SupabaseService.shared.auth.session
+            session = restored
+            userId = restored.user.id
             await validateRestoredSession()
+        } catch {
+            // Offline / transient failure — do NOT sign the user out. The stored
+            // session was already surfaced by the listener above, and auto-refresh
+            // will recover the token once the network is back.
         }
     }
 
@@ -47,13 +60,18 @@ final class AuthService {
         do {
             _ = try await SupabaseService.shared.auth.user()
         } catch let error as AuthError {
-            let rejected: Bool
+            // Only a *confirmed* "this account no longer exists" should drop the
+            // session (the deleted-from-another-device case above). 401/403 are
+            // token-timing / permission blips that auto-refresh recovers, and a
+            // genuinely dead session is cleaned up by the SDK's SIGNED_OUT event —
+            // so we keep the user logged in for anything short of a hard 404.
+            let accountDeleted: Bool
             if case let .api(_, _, _, response) = error {
-                rejected = [401, 403, 404].contains(response.statusCode)
+                accountDeleted = response.statusCode == 404
             } else {
-                rejected = error.errorCode == .userNotFound || error.errorCode == .sessionNotFound
+                accountDeleted = error.errorCode == .userNotFound
             }
-            if rejected {
+            if accountDeleted {
                 try? await SupabaseService.shared.auth.signOut(scope: .local)
                 session = nil
                 userId = nil

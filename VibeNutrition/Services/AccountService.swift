@@ -12,6 +12,10 @@ final class AccountService {
         try await SupabaseService.shared.functions
             .invoke("delete-account", options: FunctionInvokeOptions(body: [:] as [String: String]))
         await PurchaseService.shared.logOut()
+        // Reset local onboarding markers so the next user on this device starts
+        // a fresh onboarding flow rather than being sent straight to sign-in.
+        OnboardingState.hasCompletedOnboarding = false
+        OnboardingState.clear()
         try await AuthService.shared.signOut()
     }
 

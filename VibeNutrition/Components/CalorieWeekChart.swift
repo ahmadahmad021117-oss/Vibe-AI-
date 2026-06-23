@@ -14,6 +14,27 @@ struct CalorieWeekChart: View {
     /// nil → treat as flat / maintain (balanced coloring around the target).
     let direction: GoalType.Direction?
 
+    /// Live scrub position from the chart gesture. Chart resets this to nil the
+    /// moment the finger lifts — we mirror it into `pinnedDate` so the highlight
+    /// survives the release.
+    @State private var selectedDate: Date?
+
+    /// The day that stays highlighted after you lift your finger. Tapping or
+    /// dragging onto another day moves the pin; it persists until then.
+    @State private var pinnedDate: Date?
+
+    /// The currently-pinned day, snapped to the nearest real bar.
+    private var selectedDay: FoodLogService.DailyKcal? {
+        guard let pinnedDate else { return nil }
+        return nearestDay(to: pinnedDate)
+    }
+
+    private func nearestDay(to date: Date) -> FoodLogService.DailyKcal? {
+        history.min {
+            abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date))
+        }
+    }
+
     /// What counts as "on target" for the given goal direction.
     enum DayStatus {
         case noData
@@ -90,8 +111,25 @@ struct CalorieWeekChart: View {
                 )
                 .foregroundStyle(color(for: status(for: day)))
                 .cornerRadius(4)
+                // Dim the other bars while scrubbing so the selected day pops.
+                .opacity(selectedDay == nil || selectedDay?.id == day.id ? 1 : 0.35)
+            }
+
+            // Tooltip pinned to the day being scrubbed.
+            if let selectedDay {
+                RuleMark(x: .value("Selected", selectedDay.date, unit: .day))
+                    .lineStyle(StrokeStyle(lineWidth: 1))
+                    .foregroundStyle(Theme.Palette.textMuted.opacity(0.25))
+                    .annotation(
+                        position: .top,
+                        spacing: 6,
+                        overflowResolution: .init(x: .fit(to: .chart), y: .disabled)
+                    ) {
+                        tooltip(for: selectedDay)
+                    }
             }
         }
+        .chartXSelection(value: $selectedDate)
         .chartYScale(domain: 0...yAxisMax)
         .chartXAxis {
             AxisMarks(values: history.map(\.date)) { value in
@@ -119,6 +157,35 @@ struct CalorieWeekChart: View {
             }
         }
         .accessibilityLabel("7-day calorie history vs target \(targetKcal) kilocalories")
+        // Mirror the live gesture into the persistent pin so the selection stays
+        // put after release; only move (and buzz) when the day actually changes.
+        .onChange(of: selectedDate) { _, newValue in
+            guard let newValue, let day = nearestDay(to: newValue) else { return }
+            if pinnedDate != day.date {
+                pinnedDate = day.date
+                Haptics.select()
+            }
+        }
+    }
+
+    /// Floating label shown above the scrubbed bar: weekday + what was eaten.
+    private func tooltip(for day: FoodLogService.DailyKcal) -> some View {
+        VStack(spacing: 1) {
+            Text(Self.tooltipDayLabel.string(from: day.date))
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(Theme.Palette.textMuted)
+            Text(day.kcal > 0 ? "\(day.kcal.grouped) kcal" : "No food logged")
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .foregroundStyle(Theme.Palette.text)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Theme.Palette.bgElevated, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Theme.Palette.border, lineWidth: 1)
+        )
+        .fixedSize()
     }
 
     private var legend: some View {
@@ -191,6 +258,13 @@ struct CalorieWeekChart: View {
         // 7 bars on a phone-width chart.
         let f = DateFormatter()
         f.dateFormat = "EEEEE"
+        return f
+    }()
+
+    /// Fuller label for the scrub tooltip, e.g. "Mon, Jun 16".
+    private static let tooltipDayLabel: DateFormatter = {
+        let f = DateFormatter()
+        f.setLocalizedDateFormatFromTemplate("EEEMMMd")
         return f
     }()
 }
